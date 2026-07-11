@@ -145,7 +145,7 @@ class KaggleExtractor:
             "url": dataset.url,
 
             # Classification
-            "tags": [tag.name for tag in dataset.tags],
+            "tags": ", ".join(tag.name for tag in dataset.tags),
             "topic_count": dataset.topic_count,
 
             # Qualité
