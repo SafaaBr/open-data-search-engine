@@ -1,23 +1,24 @@
 """
 Point d'entrée principal du projet.
 """
-
+import pandas as pd
 from src.extraction.kaggle_extractor import KaggleExtractor
 
 
-def main():
-    """
-    Lance le programme.
-    """
 
-    print("=== Moteur de recherche Open Data ===")
+def main():
 
     extractor = KaggleExtractor()
 
     extractor.authenticate()
 
-    print("Le module d'extraction est prêt.")
+    df = extractor.search_to_dataframe(
+        query="diabetes",
+        limit=5
+    )
 
+    print(df)
+    
 
 if __name__ == "__main__":
     main()
