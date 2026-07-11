@@ -1,0 +1,19 @@
+# Environnement virtuel
+.venv/
+
+# Cache Python
+__pycache__/
+*.py[cod]
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Base de données SQLite
+*.db
+
+# Logs
+logs/
+
+# Fichiers système
+.DS_Store
+Thumbs.db
