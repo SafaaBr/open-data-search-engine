@@ -109,7 +109,7 @@ class MetadataProfiler:
 
         pass
 
-    def calculate_global_score(
+    def calculate_metadata_score(
         self,
         completeness: float,
         popularity: float,
@@ -117,7 +117,8 @@ class MetadataProfiler:
         reusability: float
     ) -> float:
         """
-        Calcule le score global.
+        Calcule le Metadata Score à partir des différents
+        indicateurs calculés..
 
         Returns
         -------
@@ -132,8 +133,8 @@ class MetadataProfiler:
         dataframe: pd.DataFrame
     ) -> pd.DataFrame:
         """
-        Enrichit un DataFrame avec les scores calculés.
-
+        Enrichit le DataFrame en ajoutant les indicateurs 
+        du metadata profiling ainsi que le Metadata Score.    
         Parameters
         ----------
         dataframe : pandas.DataFrame
