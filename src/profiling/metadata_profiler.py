@@ -140,10 +140,9 @@ class MetadataProfiler:
         dataframe : pandas.DataFrame
             Métadonnées des datasets.
 
-        Returns
-        -------
-        pandas.DataFrame
-            DataFrame enrichi.
+        ----
+        returns 
+        pandas.dataframe
+            dataframe enrichi 
         """
-
         pass
