@@ -1,55 +1,24 @@
-"""
-Point d'entrée principal du projet.
-"""
-
-from src.extraction.kaggle_extractor import KaggleExtractor
-from src.database.database_manager import DatabaseManager
-from src.profiling.profiler import MetadataProfiler
+from src.nlp.query_processor import QueryProcessor
 
 
 def main():
 
-    # -----------------------------
-    # 1. Extraction des métadonnées
-    # -----------------------------
+    processor = QueryProcessor()
 
-    extractor = KaggleExtractor()
+    queries = [
+        "classification",
+        "Je veux apprendre la classification.",
+        "Je cherche un dataset sur le diabète.",
+        "Heart disease dataset",
+        "Regression"
+    ]
 
-    extractor.authenticate()
+    for query in queries:
 
-    df = extractor.search_to_dataframe(
-        query="finance",
-        limit=5
-    )
+        result = processor.process_query(query)
 
-    print("\nMétadonnées extraites :")
-    print(df.head())
-
-    # -----------------------------
-    # 2. Stockage SQLite
-    # -----------------------------
-
-    db = DatabaseManager()
-
-    db.connect()
-
-    db.create_tables()
-
-    db.save_dataframe(df)
-
-    dataframe = db.load_dataframe()
-
-    db.close()
-
-    # -----------------------------
-    # 3. Metadata Profiler
-    # -----------------------------
-
-    profiler = MetadataProfiler()
-
-    print("\nLe DataFrame est prêt pour le Metadata Profiler.")
-
-    print(dataframe.head())
+        print("-" * 50)
+        print(result)
 
 
 if __name__ == "__main__":
