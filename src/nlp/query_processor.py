@@ -14,6 +14,11 @@ Projet : Moteur de recherche intelligent pour les jeux de données Open Data
 
 import re
 
+import spacy
+
+from langdetect import detect
+from langdetect.lang_detect_exception import LangDetectException
+
 
 class QueryProcessor:
     """
@@ -23,8 +28,10 @@ class QueryProcessor:
     def __init__(self):
         """
         Initialise le processeur de requêtes.
-        """
-
+         """
+        self.nlp_fr = spacy.load("fr_core_news_sm")
+        self.nlp_en = spacy.load("en_core_web_sm")
+        
         print("QueryProcessor initialisé.")
 
     def clean_query(
@@ -78,24 +85,17 @@ class QueryProcessor:
         str
             Langue détectée.
         """
+        cleaned_query = self.clean_query(query)
 
-        french_keywords = {
-            "je",
-            "cherche",
-            "dataset",
-            "données",
-            "apprendre",
-            "classification",
-            "régression",
-            "sur"
-        }
+        if len(cleaned_query.split()) < 2:
+            return "unknown"
 
-        query_words = set(query.lower().split())
+        try:
+            return detect(cleaned_query)
 
-        if french_keywords.intersection(query_words):
-            return "fr"
+        except LangDetectException:
+            return "unknown"
 
-        return "en"
 
     def extract_keywords(
         self,
@@ -114,33 +114,30 @@ class QueryProcessor:
         list[str]
             Liste des mots-clés.
         """
-
-        stopwords = {
-            "je",
+        custom_stopwords = {
+            "vouloir",
             "veux",
-            "un",
-            "une",
-            "des",
-            "le",
-            "la",
-            "les",
-            "de",
-            "du",
-            "pour",
-            "sur",
-            "avec",
-            "et",
-            "à",
-            "apprendre",
-            "cherche"
+            "chercher",
+            "cherche",
+            "need",
+            "want",
+            "looking"
         }
+        language = self.detect_language(query)
 
-        words = self.clean_query(query).split()
+        if language == "fr":
+            doc = self.nlp_fr(query)
+
+        else:
+            doc = self.nlp_en(query)
 
         keywords = [
-            word
-            for word in words
-            if word not in stopwords
+            token.lemma_.lower()
+            for token in doc
+            if not token.is_stop
+            and not token.is_punct
+            and token.is_alpha
+            and token.lemma_.lower() not in custom_stopwords
         ]
 
         return keywords
@@ -164,18 +161,30 @@ class QueryProcessor:
         """
 
         query = query.lower()
-
-        if "apprendre" in query:
+        
+        if (
+            "apprendre" in query
+            or "learn" in query
+        ):
             return "learning"
 
-        if "classification" in query:
+        if (
+            "classification" in query
+        ):
             return "classification"
 
-        if "régression" in query:
+        if (
+            "régression" in query
+            or "regression" in query
+        ):
             return "regression"
 
-        if "clustering" in query:
+        if (
+            "clustering" in query
+            or "regroupement" in query
+        ):
             return "clustering"
+
 
         return "general_search"
 
