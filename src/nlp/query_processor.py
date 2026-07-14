@@ -85,17 +85,34 @@ class QueryProcessor:
         str
             Langue détectée.
         """
+
         cleaned_query = self.clean_query(query)
 
         if len(cleaned_query.split()) < 2:
             return "unknown"
 
+        # Quelques mots français très fréquents
+        french_words = {
+            "je", "cherche", "veux", "sur", "avec",
+            "données", "santé", "diabète",
+             "régression"
+        }
+
+        words = set(cleaned_query.split())
+
+        if french_words.intersection(words):
+            return "fr"
+
         try:
-            return detect(cleaned_query)
+            language = detect(cleaned_query)
+
+            if language in ["fr", "en"]:
+                return language
+
+            return "unknown"
 
         except LangDetectException:
             return "unknown"
-
 
     def extract_keywords(
         self,
@@ -120,6 +137,8 @@ class QueryProcessor:
             "chercher",
             "cherche",
             "need",
+            "apprendre",
+            "learn",
             "want",
             "looking"
         }
@@ -131,14 +150,28 @@ class QueryProcessor:
         else:
             doc = self.nlp_en(query)
 
-        keywords = [
-            token.lemma_.lower()
-            for token in doc
-            if not token.is_stop
-            and not token.is_punct
-            and token.is_alpha
-            and token.lemma_.lower() not in custom_stopwords
-        ]
+        keywords = []
+
+        for token in doc:
+
+            if (
+                token.is_stop
+                or token.is_punct
+                or not token.is_alpha
+            ):
+                continue
+
+            keyword = token.lemma_.lower()
+
+            if keyword in custom_stopwords:
+                continue
+
+            # Si le lemme est vide ou bizarre,
+            # on garde le mot original.
+            if len(keyword) < 3:
+                keyword = token.text.lower()
+
+            keywords.append(keyword)
 
         return keywords
 

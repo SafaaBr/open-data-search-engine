@@ -1,20 +1,25 @@
 from src.nlp.query_processor import QueryProcessor
 from src.nlp.translator import Translator
+from src.nlp.synonym_engine import SynonymEngine
 
 
 def main():
 
     processor = QueryProcessor()
     translator = Translator()
+    synonym_engine = SynonymEngine()
 
     queries = [
         "Je cherche un dataset sur le diabète",
         "Je veux apprendre la classification",
         "Heart disease dataset",
-        "dataset qui parle sur la santé"
+        "dataset sur la santé"
     ]
 
     for query in queries:
+
+        print("=" * 80)
+        print(f"Requête utilisateur : {query}")
 
         processed = processor.process_query(query)
 
@@ -23,10 +28,14 @@ def main():
             language=processed["language"]
         )
 
-        print("=" * 70)
-        print("Original :", query)
-        print("Keywords :", processed["keywords"])
-        print("Translated :", translated_keywords)
+        enriched_keywords = synonym_engine.enrich_keywords(
+            translated_keywords
+        )
+
+        print(f"Langue              : {processed['language']}")
+        print(f"Mots-clés           : {processed['keywords']}")
+        print(f"Mots traduits       : {translated_keywords}")
+        print(f"Mots enrichis       : {enriched_keywords}")
 
 
 if __name__ == "__main__":

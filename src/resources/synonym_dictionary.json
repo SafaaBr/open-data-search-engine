@@ -1,0 +1,208 @@
+{
+    "classification": [
+        "prediction",
+        "supervised learning",
+        "machine learning",
+        "labeling",
+        "categorization",
+        "classifier",
+        "multiclass classification",
+        "binary classification",
+        "decision tree",
+        "random forest",
+        "xgboost",
+        "support vector machine",
+        "logistic regression"
+    ],
+    "regression": [
+        "prediction",
+        "forecasting",
+        "continuous prediction",
+        "linear regression",
+        "polynomial regression",
+        "ridge regression",
+        "lasso regression",
+        "elastic net",
+        "regressor",
+        "gradient boosting"
+    ],
+    "clustering": [
+        "unsupervised learning",
+        "grouping",
+        "segmentation",
+        "k-means",
+        "dbscan",
+        "hierarchical clustering",
+        "cluster analysis"
+    ],
+    "dataset": [
+        "data",
+        "database",
+        "table",
+        "records",
+        "csv",
+        "tabular data",
+        "structured data",
+        "training data",
+        "benchmark dataset"
+    ],
+    "diabetes": [
+        "medical",
+        "health",
+        "healthcare",
+        "disease",
+        "blood sugar",
+        "glucose",
+        "insulin",
+        "endocrinology",
+        "clinical"
+    ],
+    "heart": [
+        "cardiology",
+        "cardiovascular",
+        "heart disease",
+        "medical",
+        "clinical",
+        "ecg",
+        "electrocardiogram",
+        "hypertension"
+    ],
+    "cancer": [
+        "oncology",
+        "tumor",
+        "medical",
+        "clinical",
+        "healthcare",
+        "diagnosis",
+        "histopathology"
+    ],
+    "nlp": [
+        "natural language processing",
+        "text mining",
+        "text analysis",
+        "language model",
+        "sentiment analysis",
+        "named entity recognition",
+        "text classification",
+        "transformer",
+        "bert",
+        "llm"
+    ],
+    "computer vision": [
+        "image processing",
+        "image recognition",
+        "object detection",
+        "image classification",
+        "segmentation",
+        "cnn",
+        "vision transformer"
+    ],
+    "deep learning": [
+        "neural network",
+        "artificial intelligence",
+        "machine learning",
+        "cnn",
+        "rnn",
+        "lstm",
+        "transformer",
+        "bert",
+        "gpt",
+        "vision transformer"
+    ],
+    "machine learning": [
+        "artificial intelligence",
+        "predictive modeling",
+        "supervised learning",
+        "unsupervised learning",
+        "feature engineering",
+        "model training",
+        "cross validation"
+    ],
+    "time series": [
+        "forecasting",
+        "temporal data",
+        "sequence",
+        "arima",
+        "lstm",
+        "seasonality",
+        "trend analysis"
+    ],
+    "finance": [
+        "banking",
+        "stock market",
+        "financial data",
+        "economics",
+        "credit scoring",
+        "fraud detection",
+        "risk analysis"
+    ],
+    "sales": [
+        "retail",
+        "commerce",
+        "business",
+        "transactions",
+        "customer analytics",
+        "revenue",
+        "demand forecasting"
+    ],
+    "weather": [
+        "climate",
+        "meteorology",
+        "temperature",
+        "rainfall",
+        "forecast",
+        "humidity"
+    ],
+    "text": [
+        "documents",
+        "sentences",
+        "corpus",
+        "language",
+        "articles",
+        "reviews",
+        "tweets"
+    ],
+    "image": [
+        "picture",
+        "photo",
+        "vision",
+        "medical imaging",
+        "satellite imagery",
+        "object detection"
+    ],
+    "audio": [
+        "speech",
+        "voice",
+        "sound",
+        "speech recognition",
+        "speaker identification"
+    ],
+    "fraud": [
+        "anomaly detection",
+        "financial crime",
+        "risk",
+        "fraud detection",
+        "outlier detection"
+    ],
+    "recommendation": [
+        "recommendation system",
+        "ranking",
+        "similarity",
+        "collaborative filtering",
+        "content based filtering"
+    ],
+    "anomaly detection": [
+        "outlier detection",
+        "fraud",
+        "abnormal behavior",
+        "novelty detection"
+    ],
+    "health": [
+        "medical",
+        "clinical",
+        "hospital",
+        "patient",
+        "diagnosis",
+        "healthcare"
+    ]
+}
