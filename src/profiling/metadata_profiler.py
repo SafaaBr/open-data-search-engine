@@ -118,10 +118,10 @@ class MetadataProfiler:
         except Exception:
             return 0.0
         
-
+    
     def calculate_reusability_score(
         self,
-        license_name: str,
+        license: str,
         description: str,
         creator: str,
         tags: list
@@ -131,7 +131,7 @@ class MetadataProfiler:
 
         Parameters
         ----------
-        license_name : str
+        license : str
             Licence du jeu de données.
         description : str
             Description du jeu de données.
@@ -147,7 +147,7 @@ class MetadataProfiler:
         """
 
         metadata = {
-            "license": license_name,
+            "license": license,
             "description": description,
             "creator": creator,
             "tags": tags,
@@ -172,23 +172,20 @@ class MetadataProfiler:
     def calculate_metadata_score(
         self,
         completeness: float,
-        popularity: float,
         freshness: float,
         reusability: float
     ) -> float:
         """
-        Calcule le Metadata Score.
+        Calcule le Metadata Score global.
 
         Parameters
         ----------
         completeness : float
-            Metadata Completeness Score.
-        popularity : float
-            Popularity Score.
+            Score de complétude.
         freshness : float
-            Freshness Score.
+            Score de fraîcheur.
         reusability : float
-            Reusability Score.
+            Score de réutilisabilité.
 
         Returns
         -------
@@ -197,11 +194,10 @@ class MetadataProfiler:
         """
 
         score = (
-            completeness +
-            popularity +
-            freshness +
-            reusability
-        ) / 4
+            0.40 * completeness +
+            0.30 * freshness +
+            0.30 * reusability
+        )
 
         return round(score, 3)
     
@@ -210,60 +206,49 @@ class MetadataProfiler:
         dataframe: pd.DataFrame
     ) -> pd.DataFrame:
         """
-        Enrichit le DataFrame avec les indicateurs
-        de Metadata Profiling.
+        Enrichit un DataFrame avec les scores de qualité des métadonnées.
         """
 
         dataframe = dataframe.copy()
 
+
+
         dataframe["completeness_score"] = dataframe.apply(
-            lambda row: self.calculate_metadata_completeness_score(
-                title=row["title"],
-                subtitle=row["subtitle"],
-                description=row["description"],
-                creator=row["creator"],
-                owner=row["owner"],
-                license_name=row["license_name"],
-                last_updated=row["last_updated"],
-                tags=row["tags"],
-            ),
-            axis=1,
+            lambda row: self.calculate_metadata_completeness({
+                "title": row["title"],
+                "subtitle": row["subtitle"],
+                "description": row["description"],
+                "creator": row["creator"],
+                "owner": row["owner"],
+                "license": row["license"],
+                "last_updated": row["last_updated"],
+                "tags": row["tags"],
+            }),
+            axis=1
         )
 
-        dataframe["popularity_score"] = dataframe.apply(
-            lambda row: self.calculate_popularity_score(
-                downloads=row["downloads"],
-                votes=row["votes"],
-                views=row["views"],
-            ),
-            axis=1,
-        )
 
-        dataframe["freshness_score"] = dataframe.apply(
-            lambda row: self.calculate_freshness_score(
-                last_updated=row["last_updated"]
-            ),
-            axis=1,
+        dataframe["freshness_score"] = dataframe["last_updated"].apply(
+            self.calculate_freshness_score
         )
 
         dataframe["reusability_score"] = dataframe.apply(
             lambda row: self.calculate_reusability_score(
-                license_name=row["license_name"],
+                license=row["license"],
                 description=row["description"],
                 creator=row["creator"],
                 tags=row["tags"],
             ),
-            axis=1,
+            axis=1
         )
 
         dataframe["metadata_score"] = dataframe.apply(
             lambda row: self.calculate_metadata_score(
                 completeness=row["completeness_score"],
-                popularity=row["popularity_score"],
                 freshness=row["freshness_score"],
                 reusability=row["reusability_score"],
             ),
-            axis=1,
+            axis=1
         )
 
         return dataframe
