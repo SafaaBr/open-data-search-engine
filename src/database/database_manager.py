@@ -6,8 +6,10 @@ Ce module est responsable de :
 - créer la base de données ;
 - ouvrir la connexion ;
 - créer les tables ;
-- enregistrer les métadonnées ;
-- lire les données.
+- stocker les métadonnées des datasets ;
+- mettre à jour les métadonnées ;
+- récupérer les datasets pour la recherche ;
+- gérer les embeddings des datasets.
 
 Auteur : Safaa Bourennane
 Projet : Moteur de recherche intelligent pour les jeux de données Open Data
@@ -39,6 +41,7 @@ class DatabaseManager:
         """
         Ouvre une connexion à la base SQLite.
         """
+        self.database_path.parent.mkdir(parents=True, exist_ok=True)
 
         self.connection = sqlite3.connect(self.database_path)
 
@@ -56,7 +59,7 @@ class DatabaseManager:
 
                 id INTEGER PRIMARY KEY,
 
-                ref TEXT,
+                ref TEXT UNIQUE,
                 title TEXT,
                 subtitle TEXT,
                 description TEXT,
@@ -85,10 +88,22 @@ class DatabaseManager:
 
             )
         """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS embeddings (
+
+                dataset_ref TEXT PRIMARY KEY,
+
+                embedding BLOB,
+
+                FOREIGN KEY(dataset_ref)
+                REFERENCES datasets(ref)
+
+            )
+        """)
 
         self.connection.commit()
 
-        print("Table 'datasets' créée avec succès.")
+        print("Tables 'datasets' et 'embeddings' créées avec succès.")
 
     def save_dataframe(self, dataframe: pd.DataFrame):
         """
@@ -104,11 +119,17 @@ class DatabaseManager:
             raise RuntimeError(
                 "La connexion à la base de données n'est pas ouverte."
             )
+        cursor = self.connection.cursor()
 
+        cursor.execute("DELETE FROM datasets")
+
+        self.connection.commit()
+                
         dataframe.to_sql(
             name="datasets",
             con=self.connection,
-            if_exists="replace", # si je veux garder l'historique je mets "append" a la place de replace 
+            if_exists="append", # Reconstruction complète de l'index
+            # si je veux garder l'historique je mets "append" a la place de replace 
             index=False
         )
 
@@ -116,7 +137,7 @@ class DatabaseManager:
 
         print("Les métadonnées ont été enregistrées avec succès.")
     
-    def load_dataframe(self) -> pd.DataFrame:
+    def get_all_datasets(self) -> pd.DataFrame:
         """
         Charge la table 'datasets' sous forme de DataFrame.
 
@@ -135,6 +156,58 @@ class DatabaseManager:
 
         return pd.read_sql(query, self.connection)
     
+    def get_dataset_by_ref(self, dataset_ref: str) -> pd.DataFrame:
+        """
+        Retourne un dataset à partir de son identifiant Kaggle.
+        """
+
+        query = """
+            SELECT *
+            FROM datasets
+            WHERE ref = ?
+        """
+
+        return pd.read_sql(
+            query,
+            self.connection,
+            params=(dataset_ref,)
+        )
+    
+    def save_embeddings(self, dataframe: pd.DataFrame):
+        """
+        Enregistre les embeddings des datasets.
+        """
+        if self.connection is None:
+            raise RuntimeError(
+                "La connexion à la base de données n'est pas ouverte."
+            )
+        cursor = self.connection.cursor()
+
+        cursor.execute("DELETE FROM embeddings")
+
+        self.connection.commit()
+
+        dataframe.to_sql(
+            "embeddings",
+            self.connection,
+            if_exists="append",
+            index=False
+        )
+
+        self.connection.commit()
+
+    def load_embeddings(self) -> pd.DataFrame:
+        """
+        Charge les embeddings des datasets.
+        """
+        if self.connection is None:
+            raise RuntimeError(
+                "La connexion à la base de données n'est pas ouverte."
+            )
+
+        query = "SELECT * FROM embeddings"
+
+        return pd.read_sql(query, self.connection)
     
     def close(self):
         """
@@ -144,6 +217,7 @@ class DatabaseManager:
         if self.connection:
 
             self.connection.close()
+            self.connection = None
 
             print("Connexion SQLite fermée.")
     
