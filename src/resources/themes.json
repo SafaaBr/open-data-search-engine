@@ -1,0 +1,131 @@
+{
+    "Santé": [
+        "health",
+        "healthcare",
+        "medical",
+        "medicine",
+        "hospital",
+        "patient",
+        "disease",
+        "covid",
+        "covid19",
+        "diabetes",
+        "cancer",
+        "heart",
+        "clinical",
+        "epidemic"
+    ],
+
+    "Finance": [
+        "finance",
+        "financial",
+        "bank",
+        "banking",
+        "credit",
+        "loan",
+        "stock",
+        "market",
+        "investment",
+        "economics",
+        "trading",
+        "insurance"
+    ],
+
+    "Éducation": [
+        "education",
+        "student",
+        "school",
+        "university",
+        "learning",
+        "exam",
+        "course",
+        "teaching"
+    ],
+
+    "Environnement": [
+        "environment",
+        "climate",
+        "weather",
+        "temperature",
+        "pollution",
+        "air",
+        "water",
+        "forest",
+        "biodiversity",
+        "co2"
+    ],
+
+    "Transport": [
+        "transport",
+        "traffic",
+        "road",
+        "vehicle",
+        "car",
+        "bus",
+        "train",
+        "flight",
+        "airline",
+        "transportation"
+    ],
+
+    "Agriculture": [
+        "agriculture",
+        "crop",
+        "farming",
+        "farm",
+        "soil",
+        "plant",
+        "food",
+        "livestock",
+        "harvest"
+    ],
+
+    "Sport": [
+        "sport",
+        "football",
+        "soccer",
+        "basketball",
+        "tennis",
+        "olympics",
+        "player",
+        "match",
+        "competition"
+    ],
+
+    "Énergie": [
+        "energy",
+        "electricity",
+        "power",
+        "renewable",
+        "solar",
+        "wind",
+        "battery",
+        "oil",
+        "gas"
+    ],
+
+    "Technologie": [
+        "technology",
+        "software",
+        "computer",
+        "artificial intelligence",
+        "ai",
+        "machine learning",
+        "deep learning",
+        "nlp",
+        "cybersecurity",
+        "iot"
+    ],
+
+    "Commerce": [
+        "business",
+        "retail",
+        "customer",
+        "sales",
+        "shopping",
+        "ecommerce",
+        "marketing",
+        "product",
+        "store"
+    ]
+}

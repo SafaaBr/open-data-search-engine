@@ -79,6 +79,7 @@ class DatabaseManager:
                 url TEXT,
 
                 tags TEXT,
+                theme TEXT,
                 topic_count INTEGER,
 
                 usability_rating REAL,
@@ -128,8 +129,7 @@ class DatabaseManager:
         dataframe.to_sql(
             name="datasets",
             con=self.connection,
-            if_exists="append", # Reconstruction complète de l'index
-            # si je veux garder l'historique je mets "append" a la place de replace 
+            if_exists="append", 
             index=False
         )
 
@@ -209,6 +209,38 @@ class DatabaseManager:
 
         return pd.read_sql(query, self.connection)
     
+    
+    def load_search_index(self) -> pd.DataFrame:
+        """
+        Charge les datasets avec leurs embeddings.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame contenant les métadonnées
+            ainsi que les embeddings associés.
+        """
+
+        if self.connection is None:
+            raise RuntimeError(
+                "La connexion à la base de données n'est pas ouverte."
+            )
+
+        query = """
+            SELECT
+                d.*,
+                e.embedding
+            FROM datasets d
+            INNER JOIN embeddings e
+                ON d.ref = e.dataset_ref
+        """
+
+        return pd.read_sql(
+            query,
+            self.connection
+        )
+
+
     def close(self):
         """
         Ferme la connexion à la base de données.

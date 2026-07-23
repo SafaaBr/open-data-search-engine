@@ -1,169 +1,109 @@
 """
-Module de recherche des jeux de données.
+Module de recherche sémantique des jeux de données.
 
 Ce module orchestre l'ensemble du pipeline de recherche :
-- recherche des datasets sur Kaggle ;
-- évaluation de la qualité des métadonnées ;
-- classement des résultats ;
-- retour des meilleurs datasets.
+
+- traitement de la requête utilisateur ;
+- traduction des mots-clés ;
+- enrichissement par synonymes ;
+- génération de l'embedding de la requête ;
+- chargement des datasets indexés ;
+- calcul des similarités ;
+- classement des résultats.
 
 Auteur : Safaa Bourennane
 Projet : Moteur de recherche intelligent pour les jeux de données Open Data
 """
 
+import numpy as np
 import pandas as pd
 
-from kaggle_extractor import KaggleExtractor
-from metadata_profiler import MetadataProfiler
+from query_processor import QueryProcessor
+from translator import Translator
+from synonym_engine import SynonymEngine
+from embedding_engine import EmbeddingEngine
+from database_manager import DatabaseManager
 from ranking import Ranking
 
 
 class SearchEngine:
     """
-    Classe responsable de l'orchestration du moteur de recherche.
+    Classe responsable du moteur de recherche sémantique.
     """
 
     def __init__(self):
         """
-        Initialise le moteur de recherche et ses composants.
+        Initialise les différents modules du moteur.
         """
 
-        self.extractor = KaggleExtractor()
-        self.metadata_profiler = MetadataProfiler()
+        self.query_processor = QueryProcessor()
+        self.translator = Translator()
+        self.synonym_engine = SynonymEngine()
+        self.embedding_engine = EmbeddingEngine()
+        self.database_manager = DatabaseManager()
         self.ranking = Ranking()
 
+        print("SearchEngine initialisé.")
     def search(
         self,
         query: str,
-        max_results: int = 50
+        theme: str | None = None,
+        top_k: int = 10
     ) -> pd.DataFrame:
         """
-        Recherche des datasets correspondant à une requête.
-
-        Parameters
-        ----------
-        query : str
-            Requête de recherche.
-        max_results : int, optional
-            Nombre maximal de datasets à récupérer.
-
-        Returns
-        -------
-        pd.DataFrame
-            DataFrame contenant les datasets trouvés.
-        """
-
-        return self.extractor.search_datasets(
-            query=query,
-            max_results=max_results
-        )
-
-    def evaluate_metadata(
-        self,
-        dataframe: pd.DataFrame
-    ) -> pd.DataFrame:
-        """
-        Évalue la qualité des métadonnées.
-
-        Parameters
-        ----------
-        dataframe : pd.DataFrame
-            DataFrame contenant les métadonnées des datasets.
-
-        Returns
-        -------
-        pd.DataFrame
-            DataFrame enrichi avec les scores de qualité.
-        """
-
-        return self.metadata_profiler.profile_dataframe(dataframe)
-
-    def rank_results(
-        self,
-        dataframe: pd.DataFrame
-    ) -> pd.DataFrame:
-        """
-        Classe les datasets selon leur Recommendation Score.
-
-        Parameters
-        ----------
-        dataframe : pd.DataFrame
-            DataFrame enrichi avec les scores de qualité.
-
-        Returns
-        -------
-        pd.DataFrame
-            DataFrame classé.
-        """
-
-        return self.ranking.rank_dataframe(dataframe)
-
-    def get_top_results(
-        self,
-        dataframe: pd.DataFrame,
-        top_k: int = 5
-    ) -> pd.DataFrame:
-        """
-        Retourne les meilleurs datasets.
-
-        Parameters
-        ----------
-        dataframe : pd.DataFrame
-            DataFrame classé.
-        top_k : int, optional
-            Nombre de résultats à retourner.
-
-        Returns
-        -------
-        pd.DataFrame
-            Les meilleurs datasets.
-        """
-
-        return self.ranking.get_top_k(
-            dataframe=dataframe,
-            k=top_k
-        )
-
-    def run(
-        self,
-        query: str,
-        max_results: int = 50,
-        top_k: int = 5
-    ) -> pd.DataFrame:
-        """
-        Exécute l'ensemble du pipeline de recherche.
+        Exécute une recherche sémantique.
 
         Parameters
         ----------
         query : str
             Requête utilisateur.
-        max_results : int, optional
-            Nombre maximal de datasets récupérés.
-        top_k : int, optional
-            Nombre de résultats finaux.
+
+        theme : str, optional
+            Thème à filtrer.
+
+        top_k : int
+            Nombre de résultats.
 
         Returns
         -------
-        pd.DataFrame
-            Les meilleurs datasets recommandés.
+        pandas.DataFrame
+            Résultats classés.
         """
 
-        # Recherche des datasets
-        dataframe = self.search(
-            query=query,
-            max_results=max_results
+        # Traitement de la requête
+        processed_query = self.query_processor.process_query(query)
+
+        keywords = processed_query["keywords"]
+
+        # Traduction
+        keywords = self.translator.translate_keywords(
+            keywords,
+            processed_query["language"]
         )
 
-        # Évaluation de la qualité des métadonnées
-        dataframe = self.evaluate_metadata(dataframe)
-
-        # Classement des datasets
-        dataframe = self.rank_results(dataframe)
-
-        # Sélection des meilleurs résultats
-        dataframe = self.get_top_results(
-            dataframe=dataframe,
-            top_k=top_k
+        # Enrichissement
+        keywords = self.synonym_engine.enrich_keywords(
+            keywords
         )
 
-        return dataframe
+        # Embedding de la requête
+        query_embedding = self.embedding_engine.encode_keywords(
+            keywords
+        )
+
+        # Chargement des datasets indexés
+        self.database_manager.connect()
+
+        try:
+
+            dataframe = self.database_manager.load_search_index()
+
+        finally:
+
+            self.database_manager.close()
+
+        #
+        # Ici viendra le calcul des similarités
+        #
+
+        return dataframe.head(top_k)

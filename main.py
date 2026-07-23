@@ -1,47 +1,46 @@
-from src.nlp.query_processor import QueryProcessor
-from src.nlp.translator import Translator
-from src.nlp.synonym_engine import SynonymEngine
+"""
+Test de la construction de l'index.
+"""
+
+from src.extraction.kaggle_extractor import KaggleExtractor
 from src.nlp.embedding_engine import EmbeddingEngine
+from src.database.database_manager import DatabaseManager
+from src.profiling.theme_classifier import ThemeClassifier
+from src.extraction.dataset_indexer import DatasetIndexer
+
 
 def main():
+    """
+    Point d'entrée du programme de test.
+    """
 
-    processor = QueryProcessor()
-    translator = Translator()
-    synonym_engine = SynonymEngine()
+    extractor = KaggleExtractor()
+
     embedding_engine = EmbeddingEngine()
 
-    queries = [
-        "Je cherche un dataset sur le diabète",
-        "Je veux apprendre la classification",
-        "Heart disease dataset",
-        "dataset sur la santé"
-    ]
+    database_manager = DatabaseManager()
 
-    for query in queries:
+    theme_classifier = ThemeClassifier()
 
-        print("=" * 80)
-        print(f"Requête utilisateur : {query}")
+    indexer = DatasetIndexer(
+        extractor=extractor,
+        embedding_engine=embedding_engine,
+        database_manager=database_manager,
+        theme_classifier=theme_classifier
+    )
 
-        processed = processor.process_query(query)
+    indexer.build_index(
+        query="health",
+        limit=20
+    )
+    database_manager.connect()
 
-        translated_keywords = translator.translate_keywords(
-            keywords=processed["keywords"],
-            language=processed["language"]
-        )
+    datasets = database_manager.get_all_datasets()
 
-        enriched_keywords = synonym_engine.enrich_keywords(
-            translated_keywords
-        )
-        embedding = embedding_engine.encode_keywords(
-            enriched_keywords
-        )
+    print(datasets[["title", "tags", "theme"]].head(10))
 
-        print(f"Langue              : {processed['language']}")
-        print(f"Mots-clés           : {processed['keywords']}")
-        print(f"Mots traduits       : {translated_keywords}")
-        print(f"Mots enrichis       : {enriched_keywords}")
-        print(f"Dimension de l'embedding : {embedding.shape}")
-        print(f"Premières valeurs : {embedding[:10]}")
+    database_manager.close()
+
 
 if __name__ == "__main__":
     main()
