@@ -27,7 +27,8 @@ class DatasetIndexer:
         extractor,
         embedding_engine,
         database_manager, 
-        theme_classifier
+        theme_classifier,
+        metadata_profiler
     ):
         """
         Initialise le DatasetIndexer.
@@ -45,12 +46,16 @@ class DatasetIndexer:
         
         theme_classifier : ThemeClassifier
             Module de classification des datasets par thème.
+        
+        metadata_profiler : MetadataProfiler
+            Module d'évaluation de la qualité des métadonnées.
         """
 
         self.extractor = extractor
         self.embedding_engine = embedding_engine
         self.database_manager = database_manager
         self.theme_classifier = theme_classifier
+        self.metadata_profiler = metadata_profiler
 
         print("DatasetIndexer initialisé.")
 
@@ -133,6 +138,12 @@ class DatasetIndexer:
         datasets = self.extractor.search_to_dataframe(
             query=query,
             limit=limit
+        )
+
+        print("Évaluation de la qualité des métadonnées...")
+
+        datasets = self.metadata_profiler.profile_dataframe(
+            datasets
         )
 
         print("Génération des embeddings...")
