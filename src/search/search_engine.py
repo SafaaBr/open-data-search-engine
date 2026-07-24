@@ -17,12 +17,14 @@ Projet : Moteur de recherche intelligent pour les jeux de données Open Data
 
 import pandas as pd
 
-from query_processor import QueryProcessor
-from translator import Translator
-from synonym_engine import SynonymEngine
-from embedding_engine import EmbeddingEngine
-from database_manager import DatabaseManager
-from ranking import Ranking
+from src.nlp.query_processor import QueryProcessor
+from src.nlp.translator import Translator
+from src.nlp.synonym_engine import SynonymEngine
+from src.nlp.embedding_engine import EmbeddingEngine
+
+from src.database.database_manager import DatabaseManager
+
+from src.ranking.ranking import Ranking
 
 
 class SearchEngine:
@@ -111,7 +113,7 @@ class SearchEngine:
             dataframe = dataframe[
                 dataframe["theme"].str.lower() == theme.lower()
             ].reset_index(drop=True)
-            
+
         if dataframe.empty:
             return dataframe
         

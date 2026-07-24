@@ -83,6 +83,11 @@ class DatabaseManager:
                 topic_count INTEGER,
 
                 usability_rating REAL,
+                       
+                completeness_score REAL,
+                freshness_score REAL,
+                reusability_score REAL,
+                metadata_score REAL,
 
                 is_private BOOLEAN,
                 is_featured BOOLEAN
@@ -209,7 +214,7 @@ class DatabaseManager:
 
         return pd.read_sql(query, self.connection)
     
-    
+
     def load_search_index(self) -> pd.DataFrame:
         """
         Charge les datasets avec leurs embeddings.
