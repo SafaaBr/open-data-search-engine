@@ -14,6 +14,7 @@ Projet : Moteur de recherche intelligent pour les jeux de données Open Data
 
 from sentence_transformers import SentenceTransformer
 import numpy as np
+import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 
 
