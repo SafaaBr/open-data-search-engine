@@ -15,7 +15,6 @@ Auteur : Safaa Bourennane
 Projet : Moteur de recherche intelligent pour les jeux de données Open Data
 """
 
-import numpy as np
 import pandas as pd
 
 from query_processor import QueryProcessor
@@ -44,6 +43,8 @@ class SearchEngine:
         self.ranking = Ranking()
 
         print("SearchEngine initialisé.")
+
+
     def search(
         self,
         query: str,
@@ -104,6 +105,36 @@ class SearchEngine:
 
         #
         # Ici viendra le calcul des similarités
-        #
 
-        return dataframe.head(top_k)
+        #filtrer par domaine
+        if theme is not None:
+            dataframe = dataframe[
+                dataframe["theme"].str.lower() == theme.lower()
+            ].reset_index(drop=True)
+            
+        if dataframe.empty:
+            return dataframe
+        
+        # Conversion des embeddings SQLite
+        dataset_embeddings = self.embedding_engine.decode_embeddings(
+            dataframe["embedding"]
+        )
+
+        # Calcul des similarités
+        similarities = self.embedding_engine.compute_similarity(
+            query_embedding,
+            dataset_embeddings
+        )
+
+        # Ajout du Search Score
+        dataframe["search_score"] = similarities.round(3)
+
+
+        # Classement
+        dataframe = self.ranking.rank_dataframe(dataframe)
+
+        # Retour des meilleurs résultats
+        return self.ranking.get_top_k(
+            dataframe,
+            k=top_k
+        )

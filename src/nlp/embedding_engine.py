@@ -173,6 +173,35 @@ class EmbeddingEngine:
 
         return self.generate_embedding(text)
     
+    def decode_embeddings(
+        self,
+        embeddings: pd.Series
+    ) -> np.ndarray:
+        """
+        Convertit les embeddings stockés dans SQLite
+        en tableau NumPy.
+
+        Parameters
+        ----------
+        embeddings : pandas.Series
+            Série contenant les embeddings (BLOB).
+
+        Returns
+        -------
+        numpy.ndarray
+            Tableau des embeddings.
+        """
+
+        return np.vstack(
+            embeddings.apply(
+                lambda blob: np.frombuffer(
+                    blob,
+                    dtype=np.float32
+                )
+            )
+        )
+
+    
     def compute_similarity(
         self,
         query_embedding: np.ndarray,
