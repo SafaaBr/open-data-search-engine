@@ -88,6 +88,30 @@ class SearchEngine:
         keywords = self.synonym_engine.enrich_keywords(
             keywords
         )
+        print("\n========== USER QUERY ==========")
+        print(query)
+
+        processed_query = self.query_processor.process_query(query)
+
+        print("\n========== PROCESSED ==========")
+        print(processed_query)
+
+        keywords = processed_query["keywords"]
+
+        keywords = self.translator.translate_keywords(
+            keywords,
+            processed_query["language"]
+        )
+
+        print("\n========== TRANSLATED ==========")
+        print(keywords)
+
+        keywords = self.synonym_engine.enrich_keywords(
+            keywords
+        )
+
+        print("\n========== SYNONYMS ==========")
+        print(keywords)
 
         # Embedding de la requête
         query_embedding = self.embedding_engine.encode_keywords(
@@ -131,6 +155,17 @@ class SearchEngine:
         # Ajout du Search Score
         dataframe["search_score"] = similarities.round(3)
 
+        print(
+            dataframe[
+                [
+                    "title",
+                    "search_score"
+                ]
+            ].sort_values(
+                "search_score",
+                ascending=False
+            ).head(20)
+        )
 
         # Classement
         dataframe = self.ranking.rank_dataframe(dataframe)
@@ -140,3 +175,4 @@ class SearchEngine:
             dataframe,
             k=top_k
         )
+    
