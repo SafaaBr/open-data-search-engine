@@ -47,78 +47,118 @@ class MetadataProfiler:
             return len(value) > 0
         return True
 
-
     def calculate_metadata_completeness(self, metadata: dict) -> float:
-        """
-        Calcule le Metadata Completeness Score (MCS).
 
-        Parameters
-        ----------
-        metadata : dict
-            Métadonnées d'un dataset.
-
-        Returns
-        -------
-        float
-            Score de complétude normalisé entre 0 et 1.
-        """
-        total_weight = sum(self.METADATA_WEIGHTS.values())
         score = 0
+        total_weight = sum(self.METADATA_WEIGHTS.values())
 
-        for field, weight in self.METADATA_WEIGHTS.items():
+        # Title
+        title = metadata.get("title", "")
+        if self._is_present(title):
+            if len(title) >= 20:
+                score += self.METADATA_WEIGHTS["title"]
+            elif len(title) >= 10:
+                score += self.METADATA_WEIGHTS["title"] * 0.7
+            else:
+                score += self.METADATA_WEIGHTS["title"] * 0.4
+
+        # Description
+        description = metadata.get("description", "")
+        if self._is_present(description):
+            if len(description) >= 500:
+                score += self.METADATA_WEIGHTS["description"]
+            elif len(description) >= 150:
+                score += self.METADATA_WEIGHTS["description"] * 0.7
+            else:
+                score += self.METADATA_WEIGHTS["description"] * 0.4
+
+        # Tags
+        tags = metadata.get("tags", [])
+        if self._is_present(tags):
+            if isinstance(tags, str):
+                tags = [t.strip() for t in tags.split(",") if t.strip()]
+
+            if len(tags) >= 5:
+                score += self.METADATA_WEIGHTS["tags"]
+            elif len(tags) >= 2:
+                score += self.METADATA_WEIGHTS["tags"] * 0.7
+            else:
+                score += self.METADATA_WEIGHTS["tags"] * 0.4
+
+        # Les autres champs restent binaires
+        for field in ["creator", "owner", "license", "last_updated", "subtitle"]:
             if self._is_present(metadata.get(field)):
-                score += weight
+                score += self.METADATA_WEIGHTS[field]
 
         return round(score / total_weight, 3)
     
-
     def calculate_freshness_score(
         self,
         last_updated: str
     ) -> float:
         """
         Calcule le Freshness Score d'un jeu de données.
-
-        Parameters
-        ----------
-        last_updated : str
-            Date de dernière mise à jour (format ISO 8601).
-
-        Returns
-        -------
-        float
-            Score de fraîcheur normalisé entre 0 et 1.
         """
 
         if not last_updated:
             return 0.0
 
         try:
-            # Conversion de la date ISO 8601
+            # Conversion de la date
             updated_date = datetime.fromisoformat(
                 last_updated.replace("Z", "+00:00")
             )
 
+            # Si la date n'a pas de fuseau horaire, on la considère en UTC
+            if updated_date.tzinfo is None:
+                updated_date = updated_date.replace(tzinfo=timezone.utc)
+
             current_date = datetime.now(timezone.utc)
 
-            # Âge du dataset en années
             age_years = (current_date - updated_date).days / 365.25
 
-            # Demi-vie de 5 ans
             half_life = 5
-
-            # Calcul automatique du coefficient λ
             decay = math.log(2) / half_life
 
-            # Score exponentiel
             score = math.exp(-decay * age_years)
 
             return round(score, 3)
 
-        except Exception:
+        except Exception as e:
+            print(f"Erreur Freshness : {e}")
             return 0.0
-        
+            
+    def _license_score(self, license_name: str) -> float:
+
+        if not license_name:
+            return 0.2
+
+        license_name = license_name.lower()
+
+        if "cc0" in license_name or "public domain" in license_name:
+            return 1.0
+
+        if "mit" in license_name:
+            return 1.0
+
+        if "apache" in license_name:
+            return 1.0
+
+        if "bsd" in license_name:
+            return 1.0
+
+        if "cc by-sa" in license_name:
+            return 0.8
+
+        if "cc by" in license_name:
+            return 0.8
+
+        if "other" in license_name:
+            return 0.5
+
+        return 0.5
     
+
     def calculate_reusability_score(
         self,
         license: str,
@@ -126,32 +166,6 @@ class MetadataProfiler:
         creator: str,
         tags: list
     ) -> float:
-        """
-        Calcule le score de réutilisabilité.
-
-        Parameters
-        ----------
-        license : str
-            Licence du jeu de données.
-        description : str
-            Description du jeu de données.
-        creator : str
-            Créateur du jeu de données.
-        tags : list
-            Tags du jeu de données.
-
-        Returns
-        -------
-        float
-            Score de réutilisabilité normalisé entre 0 et 1.
-        """
-
-        metadata = {
-            "license": license,
-            "description": description,
-            "creator": creator,
-            "tags": tags,
-        }
 
         weights = {
             "license": 5,
@@ -162,12 +176,22 @@ class MetadataProfiler:
 
         score = 0
 
-        for field, weight in weights.items():
-            if self._is_present(metadata[field]):
-                score += weight
+        # Licence (qualité de la licence)
+        score += self._license_score(license) * weights["license"]
+
+        # Description
+        if self._is_present(description):
+            score += weights["description"]
+
+        # Créateur
+        if self._is_present(creator):
+            score += weights["creator"]
+
+        # Tags
+        if self._is_present(tags):
+            score += weights["tags"]
 
         return round(score / sum(weights.values()), 3)
-
 
     def calculate_metadata_score(
         self,

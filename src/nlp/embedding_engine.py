@@ -225,7 +225,7 @@ class EmbeddingEngine:
         numpy.ndarray
             Scores de similarité entre la requête et chaque dataset.
         """
-
+    
         return cosine_similarity(
             query_embedding.reshape(1, -1),
             dataset_embeddings
