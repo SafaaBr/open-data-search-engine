@@ -85,6 +85,7 @@ class KaggleExtractor:
                 Liste des datasets retournés par l'API Kaggle.
         """
 
+        
         if self.api is None:
             raise RuntimeError(
                 "L'API Kaggle n'est pas authentifiée. "

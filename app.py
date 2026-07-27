@@ -145,11 +145,8 @@ if search_button:
                         f"{int(row['views']):,}"
                     )
 
-                if st.button(
-                    f"📥 Download Dataset",
-                    key=f"download_{rank}"
-                ):
-
-                    st.info(
-                        "Download feature will be connected to the Kaggle API in the next version."
+                    st.link_button(
+                        "📥 Download Dataset",
+                        row["url"],
+                        use_container_width=False
                     )
