@@ -1,53 +1,78 @@
+from src.database.database_manager import DatabaseManager
 from src.extraction.kaggle_extractor import KaggleExtractor
+from src.nlp.embedding_engine import EmbeddingEngine
 from src.profiling.metadata_profiler import MetadataProfiler
+from src.profiling.theme_classifier import ThemeClassifier
+from src.extraction.dataset_indexer import DatasetIndexer
 
+# Initialisation
+extractor = KaggleExtractor()
+embedding_engine = EmbeddingEngine()
+database_manager = DatabaseManager()
+theme_classifier = ThemeClassifier()
+metadata_profiler = MetadataProfiler()
 
-def main():
+indexer = DatasetIndexer(
+    extractor=extractor,
+    embedding_engine=embedding_engine,
+    database_manager=database_manager,
+    theme_classifier=theme_classifier,
+    metadata_profiler=metadata_profiler
+)
 
-    extractor = KaggleExtractor()
+print("===================================")
+print("Authentification Kaggle...")
+print("===================================")
 
-    # Authentification à l'API Kaggle
-    extractor.authenticate()
+extractor.authenticate()
 
-    profiler = MetadataProfiler()
+print("\n===================================")
+print("Recherche de datasets...")
+print("===================================")
 
-    dataframe = extractor.search_to_dataframe(
-        query="health",
-        limit=10
-    )
+datasets = extractor.search_to_dataframe(
+    query="sports",
+    limit=5
+)
 
-    dataframe = profiler.profile_dataframe(dataframe)
+print("\nNombre de datasets :", len(datasets))
 
-    print("\n========== METADATA SCORES ==========\n")
+print("\nColonnes :")
+print(datasets.columns.tolist())
 
-    print(
-        dataframe[
-            [
-                "title",
-                "completeness_score",
-                "freshness_score",
-                "reusability_score",
-                "metadata_score",
-            ]
-        ].to_string(index=False)
-    )
+print("\nAperçu :")
+print(
+    datasets[
+        ["title", "description", "tags"]
+    ].head()
+)
 
-    print("\n========== RAW METADATA ==========\n")
+print("\n===================================")
+print("Test MetadataProfiler...")
+print("===================================")
 
-    print(
-        dataframe[
-            [
-                "title",
-                "license",
-                "creator",
-                "owner",
-                "subtitle",
-                "last_updated",
-                "tags",
-            ]
-        ].to_string(index=False)
-    )
+datasets = metadata_profiler.profile_dataframe(datasets)
 
+print(
+    datasets[
+        [
+            "title",
+            "metadata_score",
+            "completeness_score",
+            "freshness_score",
+            "reusability_score",
+        ]
+    ]
+)
 
-if __name__ == "__main__":
-    main()
+print("\n===================================")
+print("Test Embeddings...")
+print("===================================")
+
+embeddings = indexer.generate_embeddings(datasets)
+
+print(embeddings.head())
+
+print("\n===================================")
+print("Tout fonctionne correctement.")
+print("===================================")

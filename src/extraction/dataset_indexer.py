@@ -171,3 +171,5 @@ class DatasetIndexer:
             self.database_manager.close()
 
         print("Index construit avec succès.")
+
+    
