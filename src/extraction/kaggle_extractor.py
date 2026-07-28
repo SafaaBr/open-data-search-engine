@@ -4,6 +4,7 @@ Module d'extraction des métadonnées depuis Kaggle.
 Ce module est responsable de toutes les interactions avec l'API Kaggle.
 Il permet :
 
+
 - d'établir une connexion avec l'API ;
 - de rechercher des jeux de données ;
 - d'extraire leurs métadonnées.
@@ -15,6 +16,7 @@ import os
 from pathlib import Path
 from kaggle.api.kaggle_api_extended import KaggleApi
 import pandas as pd
+
 
 class KaggleExtractor:
     """
@@ -192,3 +194,4 @@ class KaggleExtractor:
         df = pd.DataFrame(metadata_list)
 
         return df
+    

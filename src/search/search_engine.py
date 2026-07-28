@@ -15,7 +15,9 @@ Auteur : Safaa Bourennane
 Projet : Moteur de recherche intelligent pour les jeux de données Open Data
 """
 
+
 import pandas as pd
+
 
 from src.nlp.query_processor import QueryProcessor
 from src.nlp.translator import Translator
@@ -25,6 +27,9 @@ from src.nlp.embedding_engine import EmbeddingEngine
 from src.database.database_manager import DatabaseManager
 
 from src.ranking.ranking import Ranking
+
+from src.extraction.kaggle_extractor import KaggleExtractor
+from src.download.downloader import DatasetDownloader
 
 
 class SearchEngine:
@@ -43,6 +48,9 @@ class SearchEngine:
         self.embedding_engine = EmbeddingEngine()
         self.database_manager = DatabaseManager()
         self.ranking = Ranking()
+        self.extractor = KaggleExtractor()
+        self.extractor.authenticate()
+        self.downloader = DatasetDownloader(self.extractor.api)
 
         print("SearchEngine initialisé.")
 
@@ -176,3 +184,10 @@ class SearchEngine:
             k=top_k
         )
     
+
+    def download_dataset(self, dataset_ref: str):
+        """
+        Télécharge un dataset Kaggle.
+        """
+
+        return self.downloader.download_dataset(dataset_ref)

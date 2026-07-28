@@ -15,6 +15,7 @@ database_manager = DatabaseManager()
 theme_classifier = ThemeClassifier()
 metadata_profiler = MetadataProfiler()
 
+
 indexer = DatasetIndexer(
     extractor=extractor,
     embedding_engine=embedding_engine,
@@ -40,6 +41,7 @@ limit = 50
 
 print("Authentification Kaggle...")
 extractor.authenticate()
+
 
 all_datasets = []
 

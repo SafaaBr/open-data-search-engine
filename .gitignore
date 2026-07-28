@@ -17,3 +17,8 @@ logs/
 # Fichiers système
 .DS_Store
 Thumbs.db
+
+# Kaggle API token
+config/kaggle.json
+
+datasets/downloaded/
