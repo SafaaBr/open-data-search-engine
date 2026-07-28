@@ -29,6 +29,12 @@ def load_search_engine():
 
 
 search_engine = load_search_engine()
+# -------------------------------------------------------
+# Session State
+# -------------------------------------------------------
+
+if "results" not in st.session_state:
+    st.session_state.results = None
 
 # -------------------------------------------------------
 # Header
@@ -76,6 +82,7 @@ search_button = st.button(
 # Results
 # -------------------------------------------------------
 
+# Lancer une nouvelle recherche
 if search_button:
 
     if not query.strip():
@@ -84,69 +91,112 @@ if search_button:
 
     else:
 
-
         with st.spinner("Searching datasets..."):
 
-            results = search_engine.search(
+            st.session_state.results = search_engine.search(
                 query=query,
                 top_k=top_k
             )
+        
+        print(st.session_state.results.columns)
 
-        if results.empty:
+# Afficher les derniers résultats
+if st.session_state.results is not None:
 
-            st.warning("No dataset found.")
+    results = st.session_state.results
 
-        else:
+    if results.empty:
 
-            st.success(f"{len(results)} dataset(s) found.")
+        st.warning("No dataset found.")
 
-            for rank, (_, row) in enumerate(results.iterrows(), start=1):
+    else:
 
-                st.markdown("---")
+        st.success(f"{len(results)} dataset(s) found.")
 
-                st.subheader(f"#{rank}  {row['title']}")
+        for rank, (_, row) in enumerate(results.iterrows(), start=1):
+        
 
-                score = row["recommendation_score"]
+            st.markdown("---")
 
-                if score >= 0.80:
-                    badge = "🟢 Excellent Match"
-                elif score >= 0.60:
-                    badge = "🟢 Highly Relevant"
-                elif score >= 0.40:
-                    badge = "🟡 Relevant"
-                elif score >= 0.20:
-                    badge = "🟠 Moderate Match"
-                else:
-                    badge = "🔴 Low Match"
+            st.subheader(f"#{rank} {row['title']}")
 
-                st.info(badge)
+            score = row["recommendation_score"]
 
+            if score >= 0.80:
+                badge = "🟢 Excellent Match"
+            elif score >= 0.60:
+                badge = "🟢 Highly Relevant"
+            elif score >= 0.40:
+                badge = "🟡 Relevant"
+            elif score >= 0.20:
+                badge = "🟠 Moderate Match"
+            else:
+                badge = "🔴 Low Match"
 
-                if row["description"]:
-                    st.write(row["description"])
+            st.info(badge)
 
-                col1, col2, col3 = st.columns(3)
+            if row["description"]:
+                st.write(row["description"])
 
-                with col1:
-                    st.metric(
-                        "Downloads",
-                        f"{int(row['downloads']):,}"
-                    )
+            col1, col2, col3 = st.columns(3)
 
-                with col2:
-                    st.metric(
-                        "Votes",
-                        f"{int(row['votes']):,}"
-                    )
+            with col1:
+                st.metric(
+                    "Downloads",
+                    f"{int(row['downloads']):,}"
+                )
 
-                with col3:
-                    st.metric(
-                        "Views",
-                        f"{int(row['views']):,}"
-                    )
+            with col2:
+                st.metric(
+                    "Votes",
+                    f"{int(row['votes']):,}"
+                )
 
-                    st.link_button(
-                        "📥 Download Dataset",
-                        row["url"],
-                        use_container_width=False
-                    )
+            with col3:
+                st.metric(
+                    "Views",
+                    f"{int(row['views']):,}"
+                )
+
+            size_mb = row["size_mb"]
+
+            if size_mb >= 1024:
+                size_text = f"{size_mb / 1024:.2f} GB"
+            else:
+                size_text = f"{size_mb:.2f} MB"
+
+            st.write(f"📦 **Dataset size:** {size_text}")
+
+            if size_mb >= 1000:
+                st.warning(
+                    "⚠️ Large dataset. Downloading and extracting may take several minutes."
+                )
+
+            col_btn1, col_btn2 = st.columns(2)
+
+            with col_btn1:
+                st.link_button(
+                    "🌐 View on Kaggle",
+                    row["url"],
+                    use_container_width=True
+                )
+
+            with col_btn2:
+                if st.button(
+                    "📥 Download Dataset",
+                    key=f"download_{rank}",
+                    use_container_width=True
+                ):
+
+                    with st.spinner("Downloading dataset..."):
+
+                        dataset_path = search_engine.download_dataset(
+                            row["ref"]
+                        )
+
+                    st.success("✅ Dataset downloaded successfully.")
+                    st.caption(f"Location: {dataset_path}") 
+
+                    
+
+      
