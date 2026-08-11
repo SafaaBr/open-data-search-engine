@@ -4,7 +4,7 @@ numpy
 spacy
 langdetect
 deep-translator
-sentence-transformers
+sentence_transformers
 scikit-learn
 kaggle
 requests
