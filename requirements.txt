@@ -1,7 +1,6 @@
-spacy
 streamlit
 pandas
 numpy
+spacy
 langdetect
-GoogleTranslator
-deep_translator
+deep-translator
