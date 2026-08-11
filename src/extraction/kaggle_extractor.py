@@ -16,7 +16,7 @@ import os
 from pathlib import Path
 from kaggle.api.kaggle_api_extended import KaggleApi
 import pandas as pd
-
+import streamlit as st
 
 class KaggleExtractor:
     """
@@ -41,23 +41,27 @@ class KaggleExtractor:
     def authenticate(self) -> bool:
         """
         Authentifie l'application auprès de l'API Kaggle.
-
-        Returns
-        -------
-        bool
-            True si l'authentification a réussi.
+        Utilise les Secrets Streamlit en environnement Cloud.
         """
 
-        # Vérifier que le fichier existe
-        if not self.config_path.exists():
-            raise FileNotFoundError(
-                f"Fichier introuvable : {self.config_path}"
-            )
-
-        # Indiquer à la bibliothèque Kaggle où se trouve le fichier
 
 
-        os.environ["KAGGLE_CONFIG_DIR"] = str(self.config_path.parent)
+        # Récupération des identifiants depuis les Secrets Streamlit
+        username = st.secrets["kaggle"]["username"]
+        key = st.secrets["kaggle"]["key"]
+
+        # Création temporaire du fichier de configuration Kaggle
+        config_dir = Path("/tmp/kaggle")
+        config_dir.mkdir(parents=True, exist_ok=True)
+
+        config_file = config_dir / "kaggle.json"
+
+        config_file.write_text(
+            f'{{"username": "{username}", "key": "{key}"}}'
+        )
+
+        # Indiquer à Kaggle où trouver le fichier
+        os.environ["KAGGLE_CONFIG_DIR"] = str(config_dir)
 
         # Création de l'objet API
         self.api = KaggleApi()
@@ -65,7 +69,7 @@ class KaggleExtractor:
         # Authentification
         self.api.authenticate()
 
-        print(" Connexion à Kaggle réussie.")
+        print("Connexion à Kaggle réussie.")
 
         return True
     
@@ -117,49 +121,119 @@ class KaggleExtractor:
         dict
             Métadonnées du dataset.
         """
+        last_updated = getattr(
+            dataset,
+            "last_updated",
+            getattr(dataset, "lastUpdated", None)
+        )
 
+        if last_updated:
+            last_updated = last_updated.strftime("%Y-%m-%d")
         metadata = {
 
             # Identification
-            "id": dataset.id,
-            "ref": dataset.ref,
-            "title": dataset.title,
-            "subtitle": dataset.subtitle,
+            "id": getattr(dataset, "id", None),
+            "ref": getattr(dataset, "ref", None),
+            "title": getattr(dataset, "title", ""),
+            "subtitle": getattr(dataset, "subtitle", ""),
 
             # Description
-            "description": dataset.description,
+            "description": getattr(dataset, "description", ""),
 
             # Auteur
-            "owner": dataset.owner_name,
-            "creator": dataset.creator_name,
+            "owner": getattr(dataset, "owner_name",
+                            getattr(dataset, "ownerName", "")),
+
+            "creator": getattr(dataset, "creator_name",
+                            getattr(dataset, "creatorName", "")),
 
             # Popularité
-            "downloads": dataset.download_count,
-            "votes": dataset.vote_count,
-            "views": dataset.view_count,
+            "downloads": getattr(dataset, "download_count",
+                                getattr(dataset, "downloadCount", 0)),
+
+            "votes": getattr(dataset, "vote_count",
+                            getattr(dataset, "voteCount", 0)),
+
+            "views": getattr(dataset, "view_count",
+                            getattr(dataset, "viewCount", 0)),
 
             # Taille
-            "size_bytes": dataset.total_bytes,
-            "size_mb": round(dataset.total_bytes / (1024 * 1024), 2),
+            "size_bytes": getattr(dataset, "total_bytes",
+                                getattr(dataset, "totalBytes", 0)),
+
+            "size_mb": round(
+                getattr(dataset, "total_bytes",
+                        getattr(dataset, "totalBytes", 0)) / (1024 * 1024),
+                2
+            ),
 
             # Informations générales
-            "license": dataset.license_name,
-            "last_updated": dataset.last_updated.strftime("%Y-%m-%d"),
-            "url": dataset.url,
+            "license": getattr(dataset, "license_name",
+                            getattr(dataset, "licenseName", "")),
+
+            "url": getattr(dataset, "url", ""),
+
+            "last_updated": last_updated,
 
             # Classification
-            "tags": ", ".join(tag.name for tag in dataset.tags),
-            "topic_count": dataset.topic_count,
+            "tags": ", ".join(tag.name for tag in getattr(dataset, "tags", [])),
+
+            "topic_count": getattr(dataset, "topic_count",
+                                getattr(dataset, "topicCount", 0)),
 
             # Qualité
-            "usability_rating": dataset.usability_rating,
+            "usability_rating": getattr(dataset, "usability_rating",
+                                        getattr(dataset, "usabilityRating", None)),
 
             # Statut
-            "is_private": dataset.is_private,
-            "is_featured": dataset.is_featured,
-        }
+            "is_private": getattr(dataset, "is_private",
+                                getattr(dataset, "isPrivate", False)),
 
+            "is_featured": getattr(dataset, "is_featured",
+                                getattr(dataset, "isFeatured", False))
+        }
         return metadata
+
+        #     # Identification
+        #     "id": dataset.id,
+        #     "ref": dataset.ref,
+        #     "title": dataset.title,
+        #     "subtitle": dataset.subtitle,
+
+        #     # Description
+        #     "description": dataset.description,
+
+        #     # Auteur
+        #     "owner": dataset.owner_name,
+        #     "creator": dataset.creator_name,
+
+        #     # Popularité
+        #     "downloads": dataset.download_count,
+        #     "votes": dataset.vote_count,
+        #     "views": dataset.view_count,
+
+        #     # Taille
+        #     "size_bytes": dataset.total_bytes,
+        #     "size_mb": round(dataset.total_bytes / (1024 * 1024), 2),
+
+        #     # Informations générales
+        #     "license": dataset.license_name,
+        #     "last_updated": dataset.last_updated.strftime("%Y-%m-%d"),
+        #     "url": dataset.url,
+
+        #     # Classification
+        #     "tags": ", ".join(tag.name for tag in dataset.tags),
+        #     "topic_count": dataset.topic_count,
+
+        #     # Qualité
+        #     "usability_rating": dataset.usability_rating,
+
+        #     # Statut
+        #     "is_private": dataset.is_private,
+        #     "is_featured": dataset.is_featured,
+        # }
+
+        # return metadata
     def search_to_dataframe(self, query: str, limit: int = 100) -> pd.DataFrame:
         """
         Recherche des jeux de données sur Kaggle et retourne leurs
