@@ -4,3 +4,4 @@ pandas
 numpy
 langdetect
 GoogleTranslator
+deep_translator
