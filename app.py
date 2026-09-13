@@ -58,14 +58,30 @@ dataset popularity.
 # Sidebar
 # -------------------------------------------------------
 
-st.sidebar.header("⚙ Search Options")
 
+
+st.sidebar.header("⚙ Search Options")
 
 top_k = st.sidebar.slider(
     "Number of results",
     min_value=1,
     max_value=20,
     value=5
+)
+
+theme = st.sidebar.selectbox(
+    "Dataset Theme",
+    [
+        "All",
+        "Weather",
+        "Health",
+        "Finance",
+        "Education",
+        "Environment",
+        "Sports",
+        "Technology",
+        "Other"
+    ]
 )
 
 # -------------------------------------------------------
@@ -97,11 +113,14 @@ if search_button:
 
         with st.spinner("Searching datasets..."):
 
+            selected_theme = None if theme == "All" else theme
+
             st.session_state.results = search_engine.search(
                 query=query,
+                theme=selected_theme,
                 top_k=top_k
             )
-        
+                    
         print(st.session_state.results.columns)
 
 # Afficher les derniers résultats

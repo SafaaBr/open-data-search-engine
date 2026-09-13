@@ -71,37 +71,39 @@ class KaggleExtractor:
     
 
     def search(self, query: str, limit: int = 10) -> list:
-    
-        """Recherche des jeux de données sur Kaggle.
-
-        Parameters
-        ----------
-        query : str
-            Mot-clé de recherche.
-        limit : int
-            Nombre maximal de résultats.
-
-        Returns
-        -------
-        list
-                Liste des datasets retournés par l'API Kaggle.
+        """
+        Recherche des jeux de données sur Kaggle avec pagination.
         """
 
-        
         if self.api is None:
             raise RuntimeError(
                 "L'API Kaggle n'est pas authentifiée. "
                 "Appelez authenticate() avant search()."
             )
 
-        datasets = self.api.dataset_list(
-            search=query
-            #page_size=limit
+        all_datasets = []
+        page = 1
 
-        )
+        while len(all_datasets) < limit:
 
-        return datasets[:limit]
-    
+            datasets = self.api.dataset_list(
+                search=query,
+                page=page
+            )
+
+            if not datasets:
+                break
+
+            all_datasets.extend(datasets)
+
+            # Si Kaggle retourne moins de 20 résultats,
+            # cela signifie probablement qu'il n'y en a plus
+            if len(datasets) < 20:
+                break
+
+            page += 1
+
+        return all_datasets[:limit]
     
     def get_metadata(self, dataset) -> dict:
         """
@@ -130,33 +132,33 @@ class KaggleExtractor:
             "description": dataset.description,
 
             # Auteur
-            "owner": dataset.owner_name,
-            "creator": dataset.creator_name,
+            "owner": dataset.ownerName,
+            "creator": dataset.creatorName,
 
             # Popularité
-            "downloads": dataset.download_count,
-            "votes": dataset.vote_count,
-            "views": dataset.view_count,
+            "downloads": dataset.downloadCount,
+            "votes": dataset.voteCount,
+            "views": dataset.viewCount,
 
             # Taille
-            "size_bytes": dataset.total_bytes,
-            "size_mb": round(dataset.total_bytes / (1024 * 1024), 2),
+            "size_bytes": dataset.totalBytes,
+            "size_mb": round(dataset.totalBytes / (1024 * 1024), 2),
 
             # Informations générales
-            "license": dataset.license_name,
-            "last_updated": dataset.last_updated.strftime("%Y-%m-%d"),
+            "license": dataset.licenseName,
+            "last_updated": dataset.lastUpdated.strftime("%Y-%m-%d"),
             "url": dataset.url,
 
             # Classification
             "tags": ", ".join(tag.name for tag in dataset.tags),
-            "topic_count": dataset.topic_count,
+            "topic_count": dataset.topicCount,
 
             # Qualité
-            "usability_rating": dataset.usability_rating,
+            "usability_rating": dataset.usabilityRating,
 
             # Statut
-            "is_private": dataset.is_private,
-            "is_featured": dataset.is_featured,
+            "is_private": dataset.isPrivate,
+            "is_featured": dataset.isFeatured,
         }
 
         return metadata
