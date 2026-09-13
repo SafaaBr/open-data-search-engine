@@ -6,8 +6,11 @@ Projet : Moteur de recherche intelligent pour les jeux de données Open Data
 """
 
 import streamlit as st
+import pandas as pd
 
 from src.search.search_engine import SearchEngine
+from pathlib import Path
+from src.profiling.dataset_profiler import DatasetProfiler
 
 # -------------------------------------------------------
 # Configuration
@@ -29,6 +32,7 @@ def load_search_engine():
 
 
 search_engine = load_search_engine()
+dataset_profiler = DatasetProfiler()
 # -------------------------------------------------------
 # Session State
 # -------------------------------------------------------
@@ -172,7 +176,12 @@ if st.session_state.results is not None:
                     "⚠️ Large dataset. Downloading and extracting may take several minutes."
                 )
 
+
             col_btn1, col_btn2 = st.columns(2)
+
+            # -------------------------------------------------------
+            # Bouton View on Kaggle
+            # -------------------------------------------------------
 
             with col_btn1:
                 st.link_button(
@@ -181,22 +190,169 @@ if st.session_state.results is not None:
                     use_container_width=True
                 )
 
+            # -------------------------------------------------------
+            # Bouton Download Dataset
+            # -------------------------------------------------------
+
             with col_btn2:
                 if st.button(
                     "📥 Download Dataset",
-                    key=f"download_{rank}",
+                    key=f"download_{row['ref']}",
                     use_container_width=True
                 ):
+                    try:
+                        dataset_path = search_engine.download_dataset(row["ref"])
 
-                    with st.spinner("Downloading dataset..."):
+                        st.success("✅ Dataset downloaded successfully.")
+                        st.caption(f"Location: {dataset_path}")
 
-                        dataset_path = search_engine.download_dataset(
-                            row["ref"]
+                        # Sauvegarder le chemin
+                        st.session_state[
+                            f"downloaded_path_{row['ref']}"
+                        ] = str(dataset_path)
+
+                    except Exception as e:
+                        st.error(f"❌ Download failed: {e}")
+
+            # -------------------------------------------------------
+            # Dataset Profiling - EN DEHORS DES COLONNES
+            # -------------------------------------------------------
+
+            downloaded_path = st.session_state.get(
+                f"downloaded_path_{row['ref']}"
+            )
+
+            if downloaded_path:
+
+                st.markdown("---")
+                st.subheader("📊 Dataset Profiling")
+
+                try:
+                    dataset_path = Path(downloaded_path)
+
+                    if dataset_path.is_dir():
+
+                        files = dataset_profiler.list_dataset_files(dataset_path)
+
+                        supported_extensions = {
+                            ".csv",
+                            ".xlsx",
+                            ".xls",
+                            ".json",
+                            ".parquet",
+                            ".tsv"
+                        }
+
+                        supported_files = [
+                            file
+                            for file in files
+                            if file.suffix.lower() in supported_extensions
+                        ]
+
+                        if not supported_files:
+
+                            st.warning(
+                                "⚠️ No supported data file found in the downloaded dataset."
+                            )
+
+                            # Important : ne pas continuer si aucun fichier
+                            continue
+
+                        selected_file = st.selectbox(
+                            "📄 Select a file to profile",
+                            supported_files,
+                            format_func=lambda file: file.name,
+                            key=f"file_select_{row['ref']}"
                         )
 
-                    st.success("✅ Dataset downloaded successfully.")
-                    st.caption(f"Location: {dataset_path}") 
+                        dataframe = dataset_profiler.load_dataset(selected_file)
 
-                    
+                    else:
 
-      
+                        dataframe = dataset_profiler.load_dataset(dataset_path)
+
+                    # Exécuter le profiling
+                    profiling_report = dataset_profiler.profile_dataset(dataframe)
+
+                    # -------------------------------------------------------
+                    # Résumé du profiling
+                    # -------------------------------------------------------
+
+                    st.markdown("### 📈 Dataset Summary")
+
+                    profile_col1, profile_col2, profile_col3, profile_col4 = st.columns(4)
+
+                    with profile_col1:
+                        st.metric(
+                            "Rows",
+                            profiling_report["rows"]
+                        )
+
+                    with profile_col2:
+                        st.metric(
+                            "Columns",
+                            profiling_report["columns"]
+                        )
+
+                    with profile_col3:
+                        st.metric(
+                            "Duplicates",
+                            profiling_report["duplicates"]
+                        )
+
+                    with profile_col4:
+                        st.metric(
+                            "Missing values",
+                            profiling_report["missing_values"]["total_missing"]
+                        )
+
+                    st.metric(
+                        "Memory usage",
+                        f'{profiling_report["memory_mb"]} MB'
+                    )
+
+                    # -------------------------------------------------------
+                    # Types des colonnes
+                    # -------------------------------------------------------
+
+                    st.markdown("### 🔠 Column Types")
+
+                    column_types_df = pd.DataFrame(
+                        list(
+                            profiling_report["column_types"].items()
+                        ),
+                        columns=["Column", "Type"]
+                    )
+
+                    st.dataframe(
+                        column_types_df,
+                        use_container_width=True
+                    )
+
+                    # -------------------------------------------------------
+                    # Valeurs manquantes
+                    # -------------------------------------------------------
+
+                    st.markdown("### 🧩 Missing Values")
+
+                    missing_values = profiling_report["missing_values"]
+
+                    missing_df = pd.DataFrame({
+                        "Column": list(
+                            missing_values["missing_values_per_column"].keys()
+                        ),
+                        "Missing values": list(
+                            missing_values["missing_values_per_column"].values()
+                        ),
+                        "Percentage (%)": list(
+                            missing_values["missing_percentage_per_column"].values()
+                        )
+                    })
+
+                    st.dataframe(
+                        missing_df,
+                        use_container_width=True
+                    )
+
+                except Exception as e:
+                    st.error(f"❌ Profiling failed: {e}")

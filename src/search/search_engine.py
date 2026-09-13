@@ -32,6 +32,7 @@ from src.extraction.kaggle_extractor import KaggleExtractor
 from src.download.downloader import DatasetDownloader
 
 
+
 class SearchEngine:
     """
     Classe responsable du moteur de recherche sémantique.
