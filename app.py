@@ -69,20 +69,25 @@ top_k = st.sidebar.slider(
     value=5
 )
 
+theme_labels = {
+    "All": None,
+    "Health": "Santé",
+    "Finance": "Finance",
+    "Education": "Éducation",
+    "Environment": "Environnement",
+    "Transport": "Transport",
+    "Agriculture": "Agriculture",
+    "Sports": "Sport",
+    "Energy": "Énergie",
+    "Technology": "Technologie",
+    "Commerce": "Commerce"
+}
+
 theme = st.sidebar.selectbox(
     "Dataset Theme",
-    [
-        "All",
-        "Weather",
-        "Health",
-        "Finance",
-        "Education",
-        "Environment",
-        "Sports",
-        "Technology",
-        "Other"
-    ]
+    list(theme_labels.keys())
 )
+
 
 # -------------------------------------------------------
 # Search
@@ -113,14 +118,14 @@ if search_button:
 
         with st.spinner("Searching datasets..."):
 
-            selected_theme = None if theme == "All" else theme
+            selected_theme = theme_labels[theme]
 
             st.session_state.results = search_engine.search(
                 query=query,
                 theme=selected_theme,
                 top_k=top_k
             )
-                    
+ 
         print(st.session_state.results.columns)
 
 # Afficher les derniers résultats

@@ -22,3 +22,4 @@ Thumbs.db
 config/kaggle.json
 
 datasets/downloaded/
+check_database.py

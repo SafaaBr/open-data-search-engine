@@ -164,6 +164,38 @@ class SearchEngine:
         # Ajout du Search Score
         dataframe["search_score"] = similarities.round(3)
 
+
+
+        # Seuil minimal de pertinence sémantique
+        MIN_SIMILARITY = 0.15
+
+        dataframe = dataframe[
+            dataframe["search_score"] >= MIN_SIMILARITY
+        ].reset_index(drop=True)
+
+        if dataframe.empty:
+            return dataframe
+
+        # Vérification lexicale de la requête
+        query_terms = query.lower().split()
+
+        def contains_query_term(row):
+            text = " ".join([
+                str(row.get("title", "")),
+                str(row.get("subtitle", "")),
+                str(row.get("description", "")),
+                str(row.get("tags", ""))
+            ]).lower()
+
+            return any(term in text for term in query_terms)
+
+        dataframe = dataframe[
+            dataframe.apply(contains_query_term, axis=1)
+        ].reset_index(drop=True)
+
+        if dataframe.empty:
+            return dataframe
+        
         print(
             dataframe[
                 [
