@@ -52,19 +52,21 @@ class Translator:
             Liste des mots-clés traduits.
         """
 
-        if language in ["en", "unknown"]:
+        if language in ["en", "unknown"] or not keywords:
             return keywords
 
-        translated_keywords = []
+        try:
+            # Regrouper les mots-clés en une seule phrase
+            text = " ".join(keywords)
 
-        for keyword in keywords:
+            # Une seule requête de traduction
+            translated_text = self.translator.translate(text)
 
-            translated_keyword = self.translator.translate(
-                keyword
-            )
+            # Retourner sous forme de liste
+            return translated_text.lower().split()
 
-            translated_keywords.append(
-                translated_keyword.lower()
-            )
+        except Exception as e:
+            print(f"Erreur de traduction : {e}")
 
-        return translated_keywords
+            # En cas d'erreur, conserver les mots-clés originaux
+        return keywords
