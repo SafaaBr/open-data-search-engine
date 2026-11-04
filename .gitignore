@@ -26,3 +26,6 @@ check_database.py
 
 # Secrets Streamlit (déploiement)
 .streamlit/secrets.toml
+
+# Descriptions Kaggle (textes des auteurs) : régénérées par scripts/fetch_descriptions.py
+data/descriptions.csv
