@@ -1,0 +1,16 @@
+query_id,language,query
+q01,en,heart disease prediction
+q02,en,credit card fraud detection
+q03,en,stock market prices
+q04,en,student performance
+q05,en,air pollution
+q06,en,football match results
+q07,en,crop yield
+q08,en,electricity consumption
+q09,fr,météo
+q10,fr,données sur le diabète
+q11,fr,accidents de la route
+q12,fr,ventes en ligne
+q13,fr,emploi
+q14,fr,prix des voitures d'occasion
+q15,fr,consommation d'énergie des bâtiments
