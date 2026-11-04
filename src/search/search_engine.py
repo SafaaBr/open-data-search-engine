@@ -50,8 +50,11 @@ class SearchEngine:
         self.database_manager = DatabaseManager()
         self.ranking = Ranking()
         self.extractor = KaggleExtractor()
-        self.extractor.authenticate()
-        self.downloader = DatasetDownloader(self.extractor.api)
+
+        # L'authentification Kaggle n'est utile que pour télécharger
+        # un dataset : elle est faite au premier téléchargement.
+        # La recherche, elle, ne lit que la base SQLite locale.
+        self.downloader = None
 
         print("SearchEngine initialisé.")
 
@@ -82,8 +85,14 @@ class SearchEngine:
             Résultats classés.
         """
 
+        print("\n========== USER QUERY ==========")
+        print(query)
+
         # Traitement de la requête
         processed_query = self.query_processor.process_query(query)
+
+        print("\n========== PROCESSED ==========")
+        print(processed_query)
 
         keywords = processed_query["keywords"]
 
@@ -93,28 +102,10 @@ class SearchEngine:
             processed_query["language"]
         )
 
-        # Enrichissement
-        keywords = self.synonym_engine.enrich_keywords(
-            keywords
-        )
-        print("\n========== USER QUERY ==========")
-        print(query)
-
-        processed_query = self.query_processor.process_query(query)
-
-        print("\n========== PROCESSED ==========")
-        print(processed_query)
-
-        keywords = processed_query["keywords"]
-
-        keywords = self.translator.translate_keywords(
-            keywords,
-            processed_query["language"]
-        )
-
         print("\n========== TRANSLATED ==========")
         print(keywords)
 
+        # Enrichissement par synonymes
         keywords = self.synonym_engine.enrich_keywords(
             keywords
         )
@@ -222,5 +213,9 @@ class SearchEngine:
         """
         Télécharge un dataset Kaggle.
         """
+
+        if self.downloader is None:
+            self.extractor.authenticate()
+            self.downloader = DatasetDownloader(self.extractor.api)
 
         return self.downloader.download_dataset(dataset_ref)
