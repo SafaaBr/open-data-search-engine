@@ -5,6 +5,8 @@ Auteur : Safaa Bourennane
 Projet : Moteur de recherche intelligent pour les jeux de données Open Data
 """
 
+import re
+
 import streamlit as st
 import pandas as pd
 
@@ -21,6 +23,40 @@ st.set_page_config(
     page_icon="🔍",
     layout="wide"
 )
+
+# -------------------------------------------------------
+# Affichage
+# -------------------------------------------------------
+
+SUMMARY_LENGTH = 200
+
+
+def short_summary(subtitle, description, max_length: int = SUMMARY_LENGTH) -> str:
+    """
+    Retourne un résumé court d'un dataset pour la liste des résultats.
+
+    Le sous-titre est utilisé s'il existe ; sinon, le début de la
+    description, sans la mise en forme Markdown, coupé à la fin d'un mot.
+    """
+
+    subtitle = subtitle if isinstance(subtitle, str) else ""
+    description = description if isinstance(description, str) else ""
+
+    if subtitle.strip():
+        return subtitle.strip()
+
+    # Retirer la mise en forme Markdown et les liens
+    text = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", description)
+    text = re.sub(r"https?://\S+", "", text)
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = re.sub(r"[#*_>`|]+", " ", text)
+    text = re.sub(r"\s+", " ", text).strip()
+
+    if len(text) <= max_length:
+        return text
+
+    return text[:max_length].rsplit(" ", 1)[0] + "…"
+
 
 # -------------------------------------------------------
 # Initialisation
@@ -163,8 +199,15 @@ if st.session_state.results is not None:
 
             st.info(badge)
 
-            if row["description"]:
-                st.write(row["description"])
+            # Résumé court ; la description complète est repliée
+            summary = short_summary(row.get("subtitle"), row.get("description"))
+
+            if summary:
+                st.write(summary)
+
+            if isinstance(row.get("description"), str) and row["description"].strip():
+                with st.expander("Full description"):
+                    st.markdown(row["description"])
 
             col1, col2, col3 = st.columns(3)
 
