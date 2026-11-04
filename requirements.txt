@@ -1,13 +1,21 @@
-streamlit
-pandas
-numpy
-spacy
-langdetect
-deep-translator
-sentence-transformers
-scikit-learn
-kaggle
+# Versions used for the PFE (aivancity, 2026)
+streamlit==1.59.2
+pandas==3.0.3
+numpy==2.5.1
+scikit-learn==1.9.0
+
+# NLP
+spacy==3.8.14
+langdetect==1.0.9
+deep-translator==1.11.4
+sentence-transformers==5.6.0
+transformers==5.13.1
+torch==2.13.0
+
+# Kaggle API
+kaggle==1.6.17
 requests
 
+# spaCy language models
 https://github.com/explosion/spacy-models/releases/download/fr_core_news_sm-3.8.0/fr_core_news_sm-3.8.0-py3-none-any.whl
 https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
