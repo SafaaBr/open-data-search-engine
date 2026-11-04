@@ -110,7 +110,7 @@ class Translator:
                 **inputs,
                 num_beams=1,
                 do_sample=False,
-                max_new_tokens=64
+                max_length=64
             )
 
         return self.tokenizer.decode(outputs[0], skip_special_tokens=True)
