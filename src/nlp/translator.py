@@ -10,6 +10,8 @@ Auteur : Safaa Bourennane
 Projet : Moteur de recherche intelligent pour les jeux de données Open Data
 """
 
+import time
+
 from deep_translator import GoogleTranslator
 
 
@@ -27,6 +29,14 @@ class Translator:
             source="auto",
             target="en"
         )
+
+        # Cache des traductions déjà obtenues : une même requête
+        # n'est envoyée qu'une fois à Google Translate.
+        self.cache = {}
+
+        # Nombre d'essais si Google Translate refuse temporairement
+        # la requête (« too many requests »).
+        self.max_attempts = 3
 
         print("Translator initialisé.")
 
@@ -55,18 +65,31 @@ class Translator:
         if language in ["en", "unknown"] or not keywords:
             return keywords
 
-        try:
-            # Regrouper les mots-clés en une seule phrase
-            text = " ".join(keywords)
+        # Regrouper les mots-clés en une seule phrase
+        text = " ".join(keywords)
 
-            # Une seule requête de traduction
-            translated_text = self.translator.translate(text)
+        if text in self.cache:
+            return self.cache[text]
 
-            # Retourner sous forme de liste
-            return translated_text.lower().split()
+        for attempt in range(1, self.max_attempts + 1):
+            try:
+                # Une seule requête de traduction
+                translated_text = self.translator.translate(text)
 
-        except Exception as e:
-            print(f"Erreur de traduction : {e}")
+                # Retourner sous forme de liste
+                translated_keywords = translated_text.lower().split()
+                self.cache[text] = translated_keywords
+                return translated_keywords
 
-            # En cas d'erreur, conserver les mots-clés originaux
+            except Exception as e:
+                print(
+                    f"Erreur de traduction (essai {attempt}/"
+                    f"{self.max_attempts}) : {e}"
+                )
+
+                # Attendre un peu avant de réessayer (1 s, puis 2 s)
+                if attempt < self.max_attempts:
+                    time.sleep(attempt)
+
+        # En cas d'échec, conserver les mots-clés originaux
         return keywords
