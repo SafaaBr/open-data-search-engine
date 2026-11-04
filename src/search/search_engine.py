@@ -167,8 +167,12 @@ class SearchEngine:
         if dataframe.empty:
             return dataframe
 
-        # Vérification lexicale de la requête
-        query_terms = query.lower().split()
+        # Vérification lexicale : au moins un mot-clé (traduit et
+        # enrichi par les synonymes) doit apparaître dans les
+        # métadonnées. On utilise les mots-clés et non la requête
+        # brute, sinon une requête en français ne trouve jamais
+        # de dataset décrit en anglais.
+        query_terms = [term.lower() for term in keywords]
 
         def contains_query_term(row):
             text = " ".join([
