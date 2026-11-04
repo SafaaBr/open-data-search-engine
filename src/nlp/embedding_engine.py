@@ -64,11 +64,18 @@ class EmbeddingEngine:
         self,
         title: str,
         description: str,
-        tags: list[str]
+        tags: list[str],
+        subtitle: str = ""
     ) -> str:
         """
         Prépare le texte d'un dataset avant la génération
         de son embedding.
+
+        Le texte est construit dans cet ordre : titre, sous-titre,
+        tags, puis description. Le modèle all-MiniLM-L6-v2 ne lit que
+        les 256 premiers tokens environ : la description, souvent
+        longue, est placée en dernier pour que ce soit elle qui soit
+        coupée, et non le titre ou les tags.
 
         Parameters
         ----------
@@ -81,18 +88,23 @@ class EmbeddingEngine:
         tags : list[str]
             Liste des tags associés au dataset.
 
+        subtitle : str, optional
+            Sous-titre du dataset.
+
         Returns
         -------
         str
             Texte concaténé prêt à être vectorisé.
         """
-        title = title or ""
-        description = description or ""
-        tags_text = " ".join(tags) if tags else ""
+        parts = [
+            title or "",
+            subtitle or "",
+            " ".join(tags) if tags else "",
+            description or "",
+        ]
 
-        return f"{title} {description} {tags_text}"
+        return " ".join(part.strip() for part in parts if part and part.strip())
 
-      
     def generate_embedding(
         self,
         text: str
@@ -145,7 +157,8 @@ class EmbeddingEngine:
         self,
         title: str,
         description: str,
-        tags: list[str]
+        tags: list[str],
+        subtitle: str = ""
     ) -> np.ndarray:
         """
         Génère l'embedding d'un dataset à partir de ses métadonnées.
@@ -161,6 +174,9 @@ class EmbeddingEngine:
         tags : list[str]
             Liste des tags associés au dataset.
 
+        subtitle : str, optional
+            Sous-titre du dataset.
+
         Returns
         -------
         numpy.ndarray
@@ -169,7 +185,8 @@ class EmbeddingEngine:
         text = self.prepare_dataset(
             title,
             description,
-            tags
+            tags,
+            subtitle
         )
 
         return self.generate_embedding(text)

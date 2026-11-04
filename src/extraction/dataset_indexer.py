@@ -84,22 +84,35 @@ class DatasetIndexer:
 
             tags = []
 
-            if pd.notna(dataset["tags"]):
+            if pd.notna(dataset["tags"]) and dataset["tags"]:
                 tags = dataset["tags"].split(", ")
 
+            description = dataset["description"]
+            if pd.isna(description):
+                description = ""
 
+            subtitle = dataset.get("subtitle", "")
+            if pd.isna(subtitle):
+                subtitle = ""
+
+            # Le thème est déterminé à partir du titre et des tags
+            # uniquement. Le classifieur cherche des mots-clés comme
+            # sous-chaînes : dans une longue description, « train »
+            # serait trouvé dans « training » (Transport) et
+            # « learning » dans « machine learning » (Éducation).
             theme = self.theme_classifier.classify(
                 title=dataset["title"],
                 tags=tags,
-                description=dataset["description"]
+                description=""
             )
 
             datasets.at[index, "theme"] = theme
 
             embedding = self.embedding_engine.encode_dataset(
                 title=dataset["title"],
-                description=dataset["description"],
-                tags=tags
+                description=description,
+                tags=tags,
+                subtitle=subtitle
             )
 
             embeddings.append(
