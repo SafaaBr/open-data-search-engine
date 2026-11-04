@@ -25,6 +25,9 @@ class QueryProcessor:
     Classe responsable du traitement des requêtes utilisateur.
     """
 
+    # Lettres accentuées propres au français
+    FRENCH_ACCENTS = set("éèêëàâîïôûùüçœ")
+
     def __init__(self):
         """
         Initialise le processeur de requêtes.
@@ -88,9 +91,6 @@ class QueryProcessor:
 
         cleaned_query = self.clean_query(query)
 
-        if len(cleaned_query.split()) < 2:
-            return "unknown"
-
         # Quelques mots français très fréquents
         french_words = {
             "je", "cherche", "veux", "sur", "avec",
@@ -102,6 +102,17 @@ class QueryProcessor:
 
         if french_words.intersection(words):
             return "fr"
+
+        # Requête d'un seul mot : langdetect n'est pas fiable sur un
+        # mot isolé. Un mot avec un accent français (« météo ») est
+        # considéré comme français ; sinon la langue reste inconnue,
+        # et le traducteur garde le mot d'origine en plus de sa
+        # traduction.
+        if len(words) < 2:
+            if any(char in self.FRENCH_ACCENTS for char in cleaned_query):
+                return "fr"
+
+            return "unknown"
 
         try:
             language = detect(cleaned_query)

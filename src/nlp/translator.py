@@ -174,14 +174,16 @@ class Translator:
             Liste des mots-clés traduits.
         """
 
-        if language in ["en", "unknown"] or not keywords:
+        if language == "en" or not keywords:
             return keywords
 
         # Regrouper les mots-clés en une seule phrase
         text = " ".join(keywords)
 
-        if text in self.cache:
-            return self.cache[text]
+        cache_key = (text, language)
+
+        if cache_key in self.cache:
+            return self.cache[cache_key]
 
         try:
             if self.backend == "local":
@@ -202,6 +204,18 @@ class Translator:
         ]
         translated_keywords = [word for word in translated_keywords if word]
 
-        self.cache[text] = translated_keywords
+        # Langue inconnue (souvent un mot isolé sans accent, comme
+        # « emploi » ou « weather ») : on garde les mots d'origine en
+        # plus de la traduction. Un mot anglais reste ainsi inchangé,
+        # et un mot français gagne sa traduction.
+        if language == "unknown":
+            translated_keywords = list(
+                dict.fromkeys(
+                    [keyword.lower() for keyword in keywords]
+                    + translated_keywords
+                )
+            )
+
+        self.cache[cache_key] = translated_keywords
 
         return translated_keywords
