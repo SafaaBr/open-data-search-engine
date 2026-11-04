@@ -23,3 +23,6 @@ config/kaggle.json
 
 datasets/downloaded/
 check_database.py
+
+# Secrets Streamlit (déploiement)
+.streamlit/secrets.toml

@@ -14,8 +14,12 @@ Projet : Moteur de recherche intelligent pour les jeux de données Open Data
 """
 import os
 from pathlib import Path
-from kaggle.api.kaggle_api_extended import KaggleApi
 import pandas as pd
+
+# Remarque : la bibliothèque Kaggle est importée dans authenticate(),
+# et non ici. Selon les versions, « import kaggle » tente de
+# s'authentifier immédiatement ; il faut donc d'abord indiquer
+# où se trouvent les identifiants.
 
 
 class KaggleExtractor:
@@ -38,6 +42,50 @@ class KaggleExtractor:
             / "kaggle.json"
         )
 
+    def _configure_credentials(self) -> str:
+        """
+        Indique à la bibliothèque Kaggle où trouver les identifiants.
+
+        Les sources sont essayées dans cet ordre :
+
+        1. le fichier config/kaggle.json du projet (usage local) ;
+        2. les variables d'environnement KAGGLE_USERNAME et KAGGLE_KEY,
+           ou KAGGLE_API_TOKEN (nouveau format de token Kaggle) ;
+        3. les Secrets Streamlit, section [kaggle] (déploiement cloud) ;
+        4. sinon, le fichier ~/.kaggle/kaggle.json lu par Kaggle lui-même.
+
+        Returns
+        -------
+        str
+            Source des identifiants utilisée (pour l'affichage).
+        """
+
+        # 1. Fichier du projet
+        if self.config_path.exists():
+            os.environ["KAGGLE_CONFIG_DIR"] = str(self.config_path.parent)
+            return "config/kaggle.json"
+
+        # 2. Variables d'environnement
+        if os.environ.get("KAGGLE_API_TOKEN") or (
+            os.environ.get("KAGGLE_USERNAME") and os.environ.get("KAGGLE_KEY")
+        ):
+            return "variables d'environnement"
+
+        # 3. Secrets Streamlit (import local : Streamlit n'est pas
+        #    nécessaire pour les scripts lancés hors de l'application)
+        try:
+            import streamlit as st
+
+            kaggle_secrets = st.secrets["kaggle"]
+            os.environ["KAGGLE_USERNAME"] = kaggle_secrets["username"]
+            os.environ["KAGGLE_KEY"] = kaggle_secrets["key"]
+            return "Secrets Streamlit"
+        except Exception:
+            pass
+
+        # 4. Emplacement par défaut de Kaggle
+        return "~/.kaggle/kaggle.json"
+
     def authenticate(self) -> bool:
         """
         Authentifie l'application auprès de l'API Kaggle.
@@ -48,24 +96,26 @@ class KaggleExtractor:
             True si l'authentification a réussi.
         """
 
-        # Vérifier que le fichier existe
-        if not self.config_path.exists():
-            raise FileNotFoundError(
-                f"Fichier introuvable : {self.config_path}"
-            )
+        source = self._configure_credentials()
 
-        # Indiquer à la bibliothèque Kaggle où se trouve le fichier
+        try:
+            from kaggle.api.kaggle_api_extended import KaggleApi
 
+            # Création de l'objet API, puis authentification
+            self.api = KaggleApi()
+            self.api.authenticate()
+        except (Exception, SystemExit) as error:
+            # Certaines versions de Kaggle appellent sys.exit() en cas
+            # d'échec : on intercepte aussi SystemExit pour afficher
+            # un message clair au lieu de fermer le programme.
+            self.api = None
+            raise RuntimeError(
+                "Authentification Kaggle impossible. Vérifiez vos "
+                "identifiants : fichier config/kaggle.json du projet, ou "
+                "variable d'environnement KAGGLE_API_TOKEN (voir le README)."
+            ) from error
 
-        os.environ["KAGGLE_CONFIG_DIR"] = str(self.config_path.parent)
-
-        # Création de l'objet API
-        self.api = KaggleApi()
-
-        # Authentification
-        self.api.authenticate()
-
-        print(" Connexion à Kaggle réussie.")
+        print(f"Connexion à Kaggle réussie ({source}).")
 
         return True
     
@@ -120,45 +170,56 @@ class KaggleExtractor:
             Métadonnées du dataset.
         """
 
+        # Selon la version de la bibliothèque Kaggle, les attributs
+        # sont nommés en camelCase (downloadCount) ou en snake_case
+        # (download_count) : on accepte les deux.
+        def attr(camel: str, snake: str, default=None):
+            return getattr(dataset, camel, getattr(dataset, snake, default))
+
+        total_bytes = attr("totalBytes", "total_bytes", 0) or 0
+        last_updated = attr("lastUpdated", "last_updated")
+
         metadata = {
 
             # Identification
-            "id": dataset.id,
-            "ref": dataset.ref,
-            "title": dataset.title,
-            "subtitle": dataset.subtitle,
+            "id": getattr(dataset, "id", None),
+            "ref": getattr(dataset, "ref", None),
+            "title": getattr(dataset, "title", ""),
+            "subtitle": getattr(dataset, "subtitle", ""),
 
             # Description
-            "description": dataset.description,
+            "description": getattr(dataset, "description", ""),
 
             # Auteur
-            "owner": dataset.ownerName,
-            "creator": dataset.creatorName,
+            "owner": attr("ownerName", "owner_name", ""),
+            "creator": attr("creatorName", "creator_name", ""),
 
             # Popularité
-            "downloads": dataset.downloadCount,
-            "votes": dataset.voteCount,
-            "views": dataset.viewCount,
+            "downloads": attr("downloadCount", "download_count", 0),
+            "votes": attr("voteCount", "vote_count", 0),
+            "views": attr("viewCount", "view_count", 0),
 
             # Taille
-            "size_bytes": dataset.totalBytes,
-            "size_mb": round(dataset.totalBytes / (1024 * 1024), 2),
+            "size_bytes": total_bytes,
+            "size_mb": round(total_bytes / (1024 * 1024), 2),
 
             # Informations générales
-            "license": dataset.licenseName,
-            "last_updated": dataset.lastUpdated.strftime("%Y-%m-%d"),
-            "url": dataset.url,
+            "license": attr("licenseName", "license_name", ""),
+            "last_updated": (
+                last_updated.strftime("%Y-%m-%d") if last_updated else None
+            ),
+            "url": getattr(dataset, "url", ""),
 
             # Classification
-            "tags": ", ".join(tag.name for tag in dataset.tags),
-            "topic_count": dataset.topicCount,
+            "tags": ", ".join(tag.name for tag in getattr(dataset, "tags", [])),
+            "topic_count": attr("topicCount", "topic_count", 0),
 
             # Qualité
-            "usability_rating": dataset.usabilityRating,
+            "usability_rating": attr("usabilityRating", "usability_rating"),
 
             # Statut
-            "is_private": dataset.isPrivate,
-            "is_featured": dataset.isFeatured,
+            "is_private": attr("isPrivate", "is_private", False),
+            "is_featured": attr("isFeatured", "is_featured", False),
         }
 
         return metadata

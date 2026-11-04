@@ -12,7 +12,6 @@ Projet : Moteur de recherche intelligent pour les jeux de données Open Data
 """
 
 from pathlib import Path
-from kaggle.api.kaggle_api_extended import KaggleApi
 
 
 class DatasetDownloader:
@@ -20,7 +19,7 @@ class DatasetDownloader:
     Classe responsable du téléchargement des datasets Kaggle.
     """
 
-    def __init__(self, api: KaggleApi):
+    def __init__(self, api):
         """
         Initialise le downloader.
 
