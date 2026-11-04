@@ -29,3 +29,7 @@ check_database.py
 
 # Descriptions Kaggle (textes des auteurs) : régénérées par scripts/fetch_descriptions.py
 data/descriptions.csv
+
+# Évaluation : cache des embeddings et fichier d'annotation (extraits de descriptions)
+evaluation/cache/
+evaluation/to_annotate.xlsx
