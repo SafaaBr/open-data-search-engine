@@ -59,30 +59,19 @@ class SearchEngine:
         print("SearchEngine initialisé.")
 
 
-    def search(
-        self,
-        query: str,
-        theme: str | None = None,
-        top_k: int = 10
-    ) -> pd.DataFrame:
+    def prepare_query(self, query: str) -> tuple[list[str], "np.ndarray"]:
         """
-        Exécute une recherche sémantique.
+        Traite une requête : mots-clés, traduction, synonymes, embedding.
 
         Parameters
         ----------
         query : str
             Requête utilisateur.
 
-        theme : str, optional
-            Thème à filtrer.
-
-        top_k : int
-            Nombre de résultats.
-
         Returns
         -------
-        pandas.DataFrame
-            Résultats classés.
+        tuple
+            Mots-clés enrichis et embedding de la requête.
         """
 
         print("\n========== USER QUERY ==========")
@@ -118,6 +107,36 @@ class SearchEngine:
             keywords
         )
 
+        return keywords, query_embedding
+
+    def search(
+        self,
+        query: str,
+        theme: str | None = None,
+        top_k: int = 10
+    ) -> pd.DataFrame:
+        """
+        Exécute une recherche sémantique.
+
+        Parameters
+        ----------
+        query : str
+            Requête utilisateur.
+
+        theme : str, optional
+            Thème à filtrer.
+
+        top_k : int
+            Nombre de résultats.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Résultats classés.
+        """
+
+        keywords, query_embedding = self.prepare_query(query)
+
         # Chargement des datasets indexés
         self.database_manager.connect()
 
@@ -129,18 +148,56 @@ class SearchEngine:
 
             self.database_manager.close()
 
-        #
-        # Ici viendra le calcul des similarités
-
         #filtrer par domaine
         if theme is not None:
             dataframe = dataframe[
                 dataframe["theme"].str.lower() == theme.lower()
             ].reset_index(drop=True)
 
+        return self.rank_candidates(
+            dataframe,
+            keywords,
+            query_embedding,
+            top_k=top_k
+        )
+
+    def rank_candidates(
+        self,
+        dataframe: pd.DataFrame,
+        keywords: list[str],
+        query_embedding,
+        top_k: int = 10
+    ) -> pd.DataFrame:
+        """
+        Classe des datasets candidats pour une requête déjà traitée.
+
+        Cette méthode est utilisée par search() et par le script
+        d'évaluation, pour que les deux classent exactement de la
+        même façon.
+
+        Parameters
+        ----------
+        dataframe : pandas.DataFrame
+            Datasets candidats, avec une colonne « embedding » (BLOB).
+
+        keywords : list[str]
+            Mots-clés traduits et enrichis.
+
+        query_embedding : numpy.ndarray
+            Embedding de la requête.
+
+        top_k : int
+            Nombre de résultats.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Résultats classés.
+        """
+
         if dataframe.empty:
             return dataframe
-        
+
         # Conversion des embeddings SQLite
         dataset_embeddings = self.embedding_engine.decode_embeddings(
             dataframe["embedding"]
