@@ -25,16 +25,28 @@ indexer = DatasetIndexer(
 )
 
 queries = [
+    "weather",
     "health",
-    "sports",
+    "heart disease",
+    "diabetes",
     "finance",
+    "stock market",
     "education",
-    "environment",
-    "business",
+    "student performance",
     "transport",
-    "energy",
+    "traffic",
     "agriculture",
-    "climate"
+    "crop",
+    "sports",
+    "football",
+    "energy",
+    "electricity",
+    "technology",
+    "machine learning",
+    "environment",
+    "pollution",
+    "sales",
+    "retail"
 ]
 
 limit = 50

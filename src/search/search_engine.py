@@ -32,6 +32,7 @@ from src.extraction.kaggle_extractor import KaggleExtractor
 from src.download.downloader import DatasetDownloader
 
 
+
 class SearchEngine:
     """
     Classe responsable du moteur de recherche sémantique.
@@ -49,8 +50,11 @@ class SearchEngine:
         self.database_manager = DatabaseManager()
         self.ranking = Ranking()
         self.extractor = KaggleExtractor()
-        self.extractor.authenticate()
-        self.downloader = DatasetDownloader(self.extractor.api)
+
+        # L'authentification Kaggle n'est utile que pour télécharger
+        # un dataset : elle est faite au premier téléchargement.
+        # La recherche, elle, ne lit que la base SQLite locale.
+        self.downloader = None
 
         print("SearchEngine initialisé.")
 
@@ -81,8 +85,14 @@ class SearchEngine:
             Résultats classés.
         """
 
+        print("\n========== USER QUERY ==========")
+        print(query)
+
         # Traitement de la requête
         processed_query = self.query_processor.process_query(query)
+
+        print("\n========== PROCESSED ==========")
+        print(processed_query)
 
         keywords = processed_query["keywords"]
 
@@ -92,28 +102,10 @@ class SearchEngine:
             processed_query["language"]
         )
 
-        # Enrichissement
-        keywords = self.synonym_engine.enrich_keywords(
-            keywords
-        )
-        print("\n========== USER QUERY ==========")
-        print(query)
-
-        processed_query = self.query_processor.process_query(query)
-
-        print("\n========== PROCESSED ==========")
-        print(processed_query)
-
-        keywords = processed_query["keywords"]
-
-        keywords = self.translator.translate_keywords(
-            keywords,
-            processed_query["language"]
-        )
-
         print("\n========== TRANSLATED ==========")
         print(keywords)
 
+        # Enrichissement par synonymes
         keywords = self.synonym_engine.enrich_keywords(
             keywords
         )
@@ -163,6 +155,42 @@ class SearchEngine:
         # Ajout du Search Score
         dataframe["search_score"] = similarities.round(3)
 
+
+
+        # Seuil minimal de pertinence sémantique
+        MIN_SIMILARITY = 0.15
+
+        dataframe = dataframe[
+            dataframe["search_score"] >= MIN_SIMILARITY
+        ].reset_index(drop=True)
+
+        if dataframe.empty:
+            return dataframe
+
+        # Vérification lexicale : au moins un mot-clé (traduit et
+        # enrichi par les synonymes) doit apparaître dans les
+        # métadonnées. On utilise les mots-clés et non la requête
+        # brute, sinon une requête en français ne trouve jamais
+        # de dataset décrit en anglais.
+        query_terms = [term.lower() for term in keywords]
+
+        def contains_query_term(row):
+            text = " ".join([
+                str(row.get("title", "")),
+                str(row.get("subtitle", "")),
+                str(row.get("description", "")),
+                str(row.get("tags", ""))
+            ]).lower()
+
+            return any(term in text for term in query_terms)
+
+        dataframe = dataframe[
+            dataframe.apply(contains_query_term, axis=1)
+        ].reset_index(drop=True)
+
+        if dataframe.empty:
+            return dataframe
+        
         print(
             dataframe[
                 [
@@ -189,5 +217,9 @@ class SearchEngine:
         """
         Télécharge un dataset Kaggle.
         """
+
+        if self.downloader is None:
+            self.extractor.authenticate()
+            self.downloader = DatasetDownloader(self.extractor.api)
 
         return self.downloader.download_dataset(dataset_ref)

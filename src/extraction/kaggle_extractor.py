@@ -14,9 +14,13 @@ Projet : Moteur de recherche intelligent pour les jeux de données Open Data
 """
 import os
 from pathlib import Path
-from kaggle.api.kaggle_api_extended import KaggleApi
 import pandas as pd
-import streamlit as st
+
+# Remarque : la bibliothèque Kaggle est importée dans authenticate(),
+# et non ici. Selon les versions, « import kaggle » tente de
+# s'authentifier immédiatement ; il faut donc d'abord indiquer
+# où se trouvent les identifiants.
+
 
 class KaggleExtractor:
     """
@@ -38,74 +42,118 @@ class KaggleExtractor:
             / "kaggle.json"
         )
 
+    def _configure_credentials(self) -> str:
+        """
+        Indique à la bibliothèque Kaggle où trouver les identifiants.
+
+        Les sources sont essayées dans cet ordre :
+
+        1. le fichier config/kaggle.json du projet (usage local) ;
+        2. les variables d'environnement KAGGLE_USERNAME et KAGGLE_KEY,
+           ou KAGGLE_API_TOKEN (nouveau format de token Kaggle) ;
+        3. les Secrets Streamlit, section [kaggle] (déploiement cloud) ;
+        4. sinon, le fichier ~/.kaggle/kaggle.json lu par Kaggle lui-même.
+
+        Returns
+        -------
+        str
+            Source des identifiants utilisée (pour l'affichage).
+        """
+
+        # 1. Fichier du projet
+        if self.config_path.exists():
+            os.environ["KAGGLE_CONFIG_DIR"] = str(self.config_path.parent)
+            return "config/kaggle.json"
+
+        # 2. Variables d'environnement
+        if os.environ.get("KAGGLE_API_TOKEN") or (
+            os.environ.get("KAGGLE_USERNAME") and os.environ.get("KAGGLE_KEY")
+        ):
+            return "variables d'environnement"
+
+        # 3. Secrets Streamlit (import local : Streamlit n'est pas
+        #    nécessaire pour les scripts lancés hors de l'application)
+        try:
+            import streamlit as st
+
+            kaggle_secrets = st.secrets["kaggle"]
+            os.environ["KAGGLE_USERNAME"] = kaggle_secrets["username"]
+            os.environ["KAGGLE_KEY"] = kaggle_secrets["key"]
+            return "Secrets Streamlit"
+        except Exception:
+            pass
+
+        # 4. Emplacement par défaut de Kaggle
+        return "~/.kaggle/kaggle.json"
+
     def authenticate(self) -> bool:
         """
         Authentifie l'application auprès de l'API Kaggle.
-        Utilise les Secrets Streamlit en environnement Cloud.
+
+        Returns
+        -------
+        bool
+            True si l'authentification a réussi.
         """
 
+        source = self._configure_credentials()
 
+        try:
+            from kaggle.api.kaggle_api_extended import KaggleApi
 
-        # Récupération des identifiants depuis les Secrets Streamlit
-        username = st.secrets["kaggle"]["username"]
-        key = st.secrets["kaggle"]["key"]
+            # Création de l'objet API, puis authentification
+            self.api = KaggleApi()
+            self.api.authenticate()
+        except (Exception, SystemExit) as error:
+            # Certaines versions de Kaggle appellent sys.exit() en cas
+            # d'échec : on intercepte aussi SystemExit pour afficher
+            # un message clair au lieu de fermer le programme.
+            self.api = None
+            raise RuntimeError(
+                "Authentification Kaggle impossible. Vérifiez vos "
+                "identifiants : fichier config/kaggle.json du projet, ou "
+                "variable d'environnement KAGGLE_API_TOKEN (voir le README)."
+            ) from error
 
-        # Création temporaire du fichier de configuration Kaggle
-        config_dir = Path("/tmp/kaggle")
-        config_dir.mkdir(parents=True, exist_ok=True)
-
-        config_file = config_dir / "kaggle.json"
-
-        config_file.write_text(
-            f'{{"username": "{username}", "key": "{key}"}}'
-        )
-
-        # Indiquer à Kaggle où trouver le fichier
-        os.environ["KAGGLE_CONFIG_DIR"] = str(config_dir)
-
-        # Création de l'objet API
-        self.api = KaggleApi()
-
-        # Authentification
-        self.api.authenticate()
-
-        print("Connexion à Kaggle réussie.")
+        print(f"Connexion à Kaggle réussie ({source}).")
 
         return True
     
 
     def search(self, query: str, limit: int = 10) -> list:
-    
-        """Recherche des jeux de données sur Kaggle.
-
-        Parameters
-        ----------
-        query : str
-            Mot-clé de recherche.
-        limit : int
-            Nombre maximal de résultats.
-
-        Returns
-        -------
-        list
-                Liste des datasets retournés par l'API Kaggle.
+        """
+        Recherche des jeux de données sur Kaggle avec pagination.
         """
 
-        
         if self.api is None:
             raise RuntimeError(
                 "L'API Kaggle n'est pas authentifiée. "
                 "Appelez authenticate() avant search()."
             )
 
-        datasets = self.api.dataset_list(
-            search=query
-            #page_size=limit
+        all_datasets = []
+        page = 1
 
-        )
+        while len(all_datasets) < limit:
 
-        return datasets[:limit]
-    
+            datasets = self.api.dataset_list(
+                search=query,
+                page=page
+            )
+
+            if not datasets:
+                break
+
+            all_datasets.extend(datasets)
+
+            # Si Kaggle retourne moins de 20 résultats,
+            # cela signifie probablement qu'il n'y en a plus
+            if len(datasets) < 20:
+                break
+
+            page += 1
+
+        return all_datasets[:limit]
     
     def get_metadata(self, dataset) -> dict:
         """
@@ -121,14 +169,16 @@ class KaggleExtractor:
         dict
             Métadonnées du dataset.
         """
-        last_updated = getattr(
-            dataset,
-            "last_updated",
-            getattr(dataset, "lastUpdated", None)
-        )
 
-        if last_updated:
-            last_updated = last_updated.strftime("%Y-%m-%d")
+        # Selon la version de la bibliothèque Kaggle, les attributs
+        # sont nommés en camelCase (downloadCount) ou en snake_case
+        # (download_count) : on accepte les deux.
+        def attr(camel: str, snake: str, default=None):
+            return getattr(dataset, camel, getattr(dataset, snake, default))
+
+        total_bytes = attr("totalBytes", "total_bytes", 0) or 0
+        last_updated = attr("lastUpdated", "last_updated")
+
         metadata = {
 
             # Identification
@@ -141,99 +191,38 @@ class KaggleExtractor:
             "description": getattr(dataset, "description", ""),
 
             # Auteur
-            "owner": getattr(dataset, "owner_name",
-                            getattr(dataset, "ownerName", "")),
-
-            "creator": getattr(dataset, "creator_name",
-                            getattr(dataset, "creatorName", "")),
+            "owner": attr("ownerName", "owner_name", ""),
+            "creator": attr("creatorName", "creator_name", ""),
 
             # Popularité
-            "downloads": getattr(dataset, "download_count",
-                                getattr(dataset, "downloadCount", 0)),
-
-            "votes": getattr(dataset, "vote_count",
-                            getattr(dataset, "voteCount", 0)),
-
-            "views": getattr(dataset, "view_count",
-                            getattr(dataset, "viewCount", 0)),
+            "downloads": attr("downloadCount", "download_count", 0),
+            "votes": attr("voteCount", "vote_count", 0),
+            "views": attr("viewCount", "view_count", 0),
 
             # Taille
-            "size_bytes": getattr(dataset, "total_bytes",
-                                getattr(dataset, "totalBytes", 0)),
-
-            "size_mb": round(
-                getattr(dataset, "total_bytes",
-                        getattr(dataset, "totalBytes", 0)) / (1024 * 1024),
-                2
-            ),
+            "size_bytes": total_bytes,
+            "size_mb": round(total_bytes / (1024 * 1024), 2),
 
             # Informations générales
-            "license": getattr(dataset, "license_name",
-                            getattr(dataset, "licenseName", "")),
-
+            "license": attr("licenseName", "license_name", ""),
+            "last_updated": (
+                last_updated.strftime("%Y-%m-%d") if last_updated else None
+            ),
             "url": getattr(dataset, "url", ""),
-
-            "last_updated": last_updated,
 
             # Classification
             "tags": ", ".join(tag.name for tag in getattr(dataset, "tags", [])),
-
-            "topic_count": getattr(dataset, "topic_count",
-                                getattr(dataset, "topicCount", 0)),
+            "topic_count": attr("topicCount", "topic_count", 0),
 
             # Qualité
-            "usability_rating": getattr(dataset, "usability_rating",
-                                        getattr(dataset, "usabilityRating", None)),
+            "usability_rating": attr("usabilityRating", "usability_rating"),
 
             # Statut
-            "is_private": getattr(dataset, "is_private",
-                                getattr(dataset, "isPrivate", False)),
-
-            "is_featured": getattr(dataset, "is_featured",
-                                getattr(dataset, "isFeatured", False))
+            "is_private": attr("isPrivate", "is_private", False),
+            "is_featured": attr("isFeatured", "is_featured", False),
         }
+
         return metadata
-
-        #     # Identification
-        #     "id": dataset.id,
-        #     "ref": dataset.ref,
-        #     "title": dataset.title,
-        #     "subtitle": dataset.subtitle,
-
-        #     # Description
-        #     "description": dataset.description,
-
-        #     # Auteur
-        #     "owner": dataset.owner_name,
-        #     "creator": dataset.creator_name,
-
-        #     # Popularité
-        #     "downloads": dataset.download_count,
-        #     "votes": dataset.vote_count,
-        #     "views": dataset.view_count,
-
-        #     # Taille
-        #     "size_bytes": dataset.total_bytes,
-        #     "size_mb": round(dataset.total_bytes / (1024 * 1024), 2),
-
-        #     # Informations générales
-        #     "license": dataset.license_name,
-        #     "last_updated": dataset.last_updated.strftime("%Y-%m-%d"),
-        #     "url": dataset.url,
-
-        #     # Classification
-        #     "tags": ", ".join(tag.name for tag in dataset.tags),
-        #     "topic_count": dataset.topic_count,
-
-        #     # Qualité
-        #     "usability_rating": dataset.usability_rating,
-
-        #     # Statut
-        #     "is_private": dataset.is_private,
-        #     "is_featured": dataset.is_featured,
-        # }
-
-        # return metadata
     def search_to_dataframe(self, query: str, limit: int = 100) -> pd.DataFrame:
         """
         Recherche des jeux de données sur Kaggle et retourne leurs
