@@ -4,6 +4,10 @@ A search engine that helps find the right dataset on Kaggle. It combines **seman
 
 Final-year project (PFE) of the MSc Data Management at **aivancity** (2026), supervised by Dr Alexandre Kson.
 
+**At a glance:** 1,064 Kaggle datasets indexed · queries in English and French, translated locally · evaluated on 15 queries against a BM25 baseline · adding dataset descriptions raises nDCG@5 from 0.857 to 0.896.
+
+![Search results for the French query "météo"](docs/app_screenshot.png)
+
 ---
 
 ## The problem
